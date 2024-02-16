@@ -83,13 +83,13 @@ export class CacheHandler implements CacheStrategy {
   }
 
   // TODO: check re-validation
-//   async revalidateTag(tag: string) {
-//     cache.forEach((value, key) => {
-//       if (value.tag.includes(tag)) {
-//         cache.delete(key)
-//       }
-//     })
-//   }
+  //   async revalidateTag(tag: string) {
+  //     cache.forEach((value, key) => {
+  //       if (value.tag.includes(tag)) {
+  //         cache.delete(key)
+  //       }
+  //     })
+  //   }
 
   static addCookie(value: string) {
     this.cacheCookies = [...new Set([...CacheHandler.cacheCookies, value])]
