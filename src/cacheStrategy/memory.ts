@@ -6,17 +6,19 @@ export class MemoryCache implements CacheStrategy {
   constructor() {}
 
   get(cacheKey: string) {
-    return cache.get(cacheKey)
+    return cache.get(cacheKey) ?? null
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  set(...params: Parameters<CacheStrategy['set']>): Promise<any> {
-    const [key, data, ctx] = params
-    cache.set(key, {
-      value: data,
-      lastModified: Date.now(),
-      tags: ctx.tags
-    })
-    return Promise.resolve(true)
+  async set(...params: Parameters<CacheStrategy['set']>) {
+    const [cacheKey, data, ctx] = params
+    if (data) {
+      cache.set(cacheKey, {
+        value: data,
+        lastModified: Date.now(),
+        tags: ctx.tags
+      })
+    } else {
+      cache.delete(cacheKey)
+    }
   }
 }
