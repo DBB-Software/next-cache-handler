@@ -3,6 +3,8 @@ import parser from 'ua-parser-js'
 import type { CacheHandlerContext } from 'next/dist/server/lib/incremental-cache'
 import { CacheStrategy } from '../cacheStrategy/base'
 
+export type { CacheHandlerContext }
+
 export class CacheHandler implements CacheStrategy {
   static cacheCookies: string[] = []
 
@@ -42,6 +44,8 @@ export class CacheHandler implements CacheStrategy {
       return `${prev ? '-' : ''}${curr}=${data[curr]}`
     }, '')
 
+    if (!cacheKey) return ''
+
     return `${prefix}(${cacheKey})`
   }
 
@@ -55,7 +59,7 @@ export class CacheHandler implements CacheStrategy {
       const currentQueryString = this.nextOptions._requestHeaders?.['x-invoke-query']
       if (!currentQueryString) return ''
 
-      const parsedQuery = JSON.parse(encodeURIComponent(currentQueryString as string))
+      const parsedQuery = JSON.parse(decodeURIComponent(currentQueryString as string))
 
       return this.buildCacheKey(CacheHandler.cacheQueries, parsedQuery, 'query')
     } catch (_e) {
