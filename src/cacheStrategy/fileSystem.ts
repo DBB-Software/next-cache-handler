@@ -18,9 +18,13 @@ export class FileSystemCache implements CacheStrategy {
 
   async set(...params: Parameters<CacheStrategy['set']>) {
     const [cacheKey, data, ctx] = params
+    const filePath = path.join(ctx.serverAppPath, `${cacheKey}.json`)
     try {
-      if (!data) return
-      await fs.writeFile(path.join(ctx.serverAppPath, `${cacheKey}.json`), JSON.stringify(data))
+      if (data) {
+        await fs.writeFile(filePath, JSON.stringify(data))
+      } else {
+        await fs.unlink(filePath)
+      }
     } catch (err) {
       console.warn(`Failed to set cache for ${cacheKey}`, err)
     }
