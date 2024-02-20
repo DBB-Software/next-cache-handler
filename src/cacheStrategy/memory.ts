@@ -1,6 +1,6 @@
 import { CacheStrategy } from './base'
 
-export const mapCache = new Map()
+const mapCache = new Map()
 
 export class MemoryCache implements CacheStrategy {
   constructor() {}
