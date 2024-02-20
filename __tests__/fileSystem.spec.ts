@@ -17,7 +17,12 @@ jest.mock('fs/promises', () => {
   }
 })
 
-global.console.warn = jest.fn()
+const mockLoggerFN = jest.fn()
+jest.mock('../src/logger/base.ts', () => ({
+  ConsoleLogger: jest.fn().mockImplementation(() => ({
+    info: jest.fn((...params) => mockLoggerFN(...params))
+  }))
+}))
 
 describe('FileSystemCache', () => {
   afterEach(() => {
@@ -46,23 +51,23 @@ describe('FileSystemCache', () => {
     mockReadFile.mockRejectedValueOnce('Error to read')
     expect(await memoryCache.get(cacheKey, mockHandlerMethodContext)).toBeNull()
 
-    expect(console.warn).toHaveBeenCalledTimes(1)
-    expect(console.warn).toHaveBeenCalledWith(`Failed to read cache for ${cacheKey}`, 'Error to read')
+    expect(mockLoggerFN).toHaveBeenCalledTimes(1)
+    expect(mockLoggerFN).toHaveBeenCalledWith(`Failed to read cache for ${cacheKey}`, 'Error to read')
   })
 
   it('should fail to write cache value', async () => {
     mockWriteFile.mockRejectedValueOnce('Error to write')
     await memoryCache.set(cacheKey, mockPageData, mockHandlerMethodContext)
 
-    expect(console.warn).toHaveBeenCalledTimes(1)
-    expect(console.warn).toHaveBeenCalledWith(`Failed to set cache for ${cacheKey}`, 'Error to write')
+    expect(mockLoggerFN).toHaveBeenCalledTimes(1)
+    expect(mockLoggerFN).toHaveBeenCalledWith(`Failed to set cache for ${cacheKey}`, 'Error to write')
   })
 
   it('should fail to clear cache value', async () => {
     mockUnlink.mockRejectedValueOnce('Error to delete')
     await memoryCache.set(cacheKey, null, mockHandlerMethodContext)
 
-    expect(console.warn).toHaveBeenCalledTimes(1)
-    expect(console.warn).toHaveBeenCalledWith(`Failed to delete cache for ${cacheKey}`, 'Error to delete')
+    expect(mockLoggerFN).toHaveBeenCalledTimes(1)
+    expect(mockLoggerFN).toHaveBeenCalledWith(`Failed to delete cache for ${cacheKey}`, 'Error to delete')
   })
 })

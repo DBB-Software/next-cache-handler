@@ -3,6 +3,7 @@ import type {
   IncrementalCacheEntry,
   IncrementalCacheValue
 } from 'next/dist/server/response-cache'
+import { type BaseLogger } from '../logger'
 
 export type { IncrementalCacheValue, IncrementalCacheEntry, IncrementalCacheKindHint }
 export interface CacheStrategy {
@@ -30,4 +31,6 @@ export interface CacheStrategy {
       serverAppPath: string
     }
   ): Promise<any>
+
+  logger: BaseLogger
 }
