@@ -1,11 +1,11 @@
 import cookieParser from 'cookie'
 import parser from 'ua-parser-js'
 import type { CacheHandlerContext } from 'next/dist/server/lib/incremental-cache'
-import { CacheStrategy } from '../cacheStrategy/base'
+import { type CacheStrategy } from '../cacheStrategy/base'
 
 export type { CacheHandlerContext }
 
-export class CacheHandler implements CacheStrategy {
+export class CacheHandler implements Omit<CacheStrategy, 'logger'> {
   static cacheCookies: string[] = []
 
   static cacheQueries: string[] = []
@@ -29,6 +29,7 @@ export class CacheHandler implements CacheStrategy {
     this.cookieCacheKey = this.buildCookiesCacheKey()
     this.queryCacheKey = this.buildQueryCacheKey()
     this.serverAppPath = nextOptions.serverDistDir || ''
+
     if (CacheHandler.enableDeviceSplit) {
       this.device = this.getCurrentDeviceType()
     }

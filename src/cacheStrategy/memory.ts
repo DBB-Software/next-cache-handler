@@ -1,9 +1,14 @@
-import { CacheStrategy } from './base'
+import { type CacheStrategy } from './base'
+import { ConsoleLogger, type BaseLogger } from '../logger'
 
 const mapCache = new Map()
 
 export class MemoryCache implements CacheStrategy {
-  constructor() {}
+  logger: BaseLogger
+
+  constructor(logger?: BaseLogger) {
+    this.logger = logger || new ConsoleLogger()
+  }
 
   get(cacheKey: string) {
     return mapCache.get(cacheKey) ?? null

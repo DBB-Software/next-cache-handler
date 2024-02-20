@@ -1,9 +1,14 @@
 import fs from 'fs/promises'
 import path from 'path'
-import { CacheStrategy, IncrementalCacheEntry } from './base'
+import { type CacheStrategy, type IncrementalCacheEntry } from './base'
+import { ConsoleLogger, type BaseLogger } from '../logger'
 
 export class FileSystemCache implements CacheStrategy {
-  constructor() {}
+  logger: BaseLogger
+
+  constructor(logger?: BaseLogger) {
+    this.logger = logger || new ConsoleLogger()
+  }
 
   async get(...params: Parameters<CacheStrategy['get']>): Promise<IncrementalCacheEntry | null> {
     const [cacheKey, ctx] = params
@@ -11,7 +16,7 @@ export class FileSystemCache implements CacheStrategy {
       const data = await fs.readFile(path.join(ctx.serverAppPath, `${cacheKey}.json`), { encoding: 'utf-8' })
       return JSON.parse(data)
     } catch (err) {
-      console.warn(`Failed to read cache for ${cacheKey}`, err)
+      this.logger.info(`Failed to read cache for ${cacheKey}`, err)
       return null
     }
   }
@@ -33,11 +38,11 @@ export class FileSystemCache implements CacheStrategy {
         try {
           await fs.unlink(filePath)
         } catch (err) {
-          console.warn(`Failed to delete cache for ${cacheKey}`, err)
+          this.logger.info(`Failed to delete cache for ${cacheKey}`, err)
         }
       }
     } catch (err) {
-      console.warn(`Failed to set cache for ${cacheKey}`, err)
+      this.logger.info(`Failed to set cache for ${cacheKey}`, err)
     }
   }
 }

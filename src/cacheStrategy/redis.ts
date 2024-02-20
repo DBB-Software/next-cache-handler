@@ -1,13 +1,15 @@
 import { createClient, RedisClientType, RedisClientOptions } from 'redis'
-import { CacheStrategy } from './base'
+import { type CacheStrategy } from './base'
+import { ConsoleLogger, type BaseLogger } from '../logger'
 
 export class RedisCache implements CacheStrategy {
   client: RedisClientType<any, any, any>
+  logger: BaseLogger
 
-  constructor(options: RedisClientOptions) {
+  constructor(options: RedisClientOptions, logger?: BaseLogger) {
+    this.logger = logger || new ConsoleLogger()
     this.client = createClient(options)
-    // TODO: inject custom logger
-    this.client.on('error', (err) => console.error('Failed to connect redis client', err)).connect()
+    this.client.on('error', (err) => this.logger.error('Failed to connect redis client', err)).connect()
   }
 
   async get(cacheKey: string) {
@@ -16,7 +18,7 @@ export class RedisCache implements CacheStrategy {
       if (!pageData) return null
       return JSON.parse(pageData)
     } catch (err) {
-      console.warn(`Failed to get page data from redis for ${cacheKey}`, err)
+      this.logger.info(`Failed to get page data from redis for ${cacheKey}`, err)
       return null
     }
   }
@@ -37,11 +39,11 @@ export class RedisCache implements CacheStrategy {
         try {
           await this.client.del(cacheKey)
         } catch (err) {
-          console.warn(`Failed to delete page data from redis for ${cacheKey}`, err)
+          this.logger.info(`Failed to delete page data from redis for ${cacheKey}`, err)
         }
       }
     } catch (err) {
-      console.warn(`Failed to set page data to redis for ${cacheKey}`, err)
+      this.logger.info(`Failed to set page data to redis for ${cacheKey}`, err)
     }
   }
 }
