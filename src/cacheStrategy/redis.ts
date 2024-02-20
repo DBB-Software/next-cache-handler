@@ -9,8 +9,7 @@ export class RedisCache implements CacheStrategy {
   constructor(options: RedisClientOptions, logger?: BaseLogger) {
     this.logger = logger || new ConsoleLogger()
     this.client = createClient(options)
-    // TODO: inject custom logger
-    this.client.on('error', (err) => console.error('Failed to connect redis client', err)).connect()
+    this.client.on('error', (err) => this.logger.error('Failed to connect redis client', err)).connect()
   }
 
   async get(cacheKey: string) {
