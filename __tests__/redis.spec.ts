@@ -17,7 +17,12 @@ jest.mock('redis', () => {
   }
 })
 
-global.console.warn = jest.fn()
+const mockLoggerFN = jest.fn()
+jest.mock('../src/logger/base.ts', () => ({
+  ConsoleLogger: jest.fn().mockImplementation(() => ({
+    info: jest.fn((...params) => mockLoggerFN(...params))
+  }))
+}))
 
 const memoryCache = new RedisCache({ url: 'mock-url' })
 const cacheKey = 'test'
@@ -49,24 +54,24 @@ describe('RedisCache', () => {
     mockReadKey.mockRejectedValueOnce('Error to read')
     expect(await memoryCache.get(cacheKey)).toBeNull()
 
-    expect(console.warn).toHaveBeenCalledTimes(1)
-    expect(console.warn).toHaveBeenCalledWith(`Failed to get page data from redis for ${cacheKey}`, 'Error to read')
+    expect(mockLoggerFN).toHaveBeenCalledTimes(1)
+    expect(mockLoggerFN).toHaveBeenCalledWith(`Failed to get page data from redis for ${cacheKey}`, 'Error to read')
   })
 
   it('should fail to write cache value', async () => {
     mockWriteKey.mockRejectedValueOnce('Error to write')
     await memoryCache.set(cacheKey, mockPageData, mockHandlerMethodContext)
 
-    expect(console.warn).toHaveBeenCalledTimes(1)
-    expect(console.warn).toHaveBeenCalledWith(`Failed to set page data to redis for ${cacheKey}`, 'Error to write')
+    expect(mockLoggerFN).toHaveBeenCalledTimes(1)
+    expect(mockLoggerFN).toHaveBeenCalledWith(`Failed to set page data to redis for ${cacheKey}`, 'Error to write')
   })
 
   it('should fail to clear cache value', async () => {
     mockDeleteKey.mockRejectedValueOnce('Error to delete')
     await memoryCache.set(cacheKey, null, mockHandlerMethodContext)
 
-    expect(console.warn).toHaveBeenCalledTimes(1)
-    expect(console.warn).toHaveBeenCalledWith(
+    expect(mockLoggerFN).toHaveBeenCalledTimes(1)
+    expect(mockLoggerFN).toHaveBeenCalledWith(
       `Failed to delete page data from redis for ${cacheKey}`,
       'Error to delete'
     )
