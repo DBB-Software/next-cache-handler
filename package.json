@@ -2,7 +2,9 @@
   "name": "next-cache-handler",
   "version": "1.0.0",
   "description": "Support to control cache behaviour for NextJS applications.",
-  "main": "index.js",
+  "main": "lib/index.js",
+  "files": ["lib"],
+  "types": "lib/index.d.ts",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "lint": "eslint \"src/**/*.ts*\"",
