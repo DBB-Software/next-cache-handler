@@ -4,7 +4,7 @@ import type {
   IncrementalCacheValue
 } from 'next/dist/server/response-cache'
 
-export { IncrementalCacheValue, IncrementalCacheEntry, IncrementalCacheKindHint }
+export type { IncrementalCacheValue, IncrementalCacheEntry, IncrementalCacheKindHint }
 export interface CacheStrategy {
   get(
     cacheKey: string,

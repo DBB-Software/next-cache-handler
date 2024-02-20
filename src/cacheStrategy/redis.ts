@@ -16,7 +16,7 @@ export class RedisCache implements CacheStrategy {
       if (!pageData) return null
       return JSON.parse(pageData)
     } catch (err) {
-      console.warn(`Failed to get page data from redis ${cacheKey}`, err)
+      console.warn(`Failed to get page data from redis for ${cacheKey}`, err)
       return null
     }
   }
@@ -25,7 +25,7 @@ export class RedisCache implements CacheStrategy {
     const [cacheKey, data, ctx] = params
     try {
       if (data) {
-        return this.client.set(
+        await this.client.set(
           cacheKey,
           JSON.stringify({
             value: data,
@@ -34,10 +34,14 @@ export class RedisCache implements CacheStrategy {
           })
         )
       } else {
-        return this.client.del(cacheKey)
+        try {
+          await this.client.del(cacheKey)
+        } catch (err) {
+          console.warn(`Failed to delete page data from redis for ${cacheKey}`, err)
+        }
       }
     } catch (err) {
-      console.warn(`Failed to set page data to redis ${cacheKey}`, err)
+      console.warn(`Failed to set page data to redis for ${cacheKey}`, err)
     }
   }
 }
