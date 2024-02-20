@@ -1,7 +1,7 @@
 import { type CacheStrategy } from './base'
 import { ConsoleLogger, type BaseLogger } from '../logger'
 
-export const mapCache = new Map()
+const mapCache = new Map()
 
 export class MemoryCache implements CacheStrategy {
   logger: BaseLogger

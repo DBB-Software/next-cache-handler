@@ -1,7 +1,7 @@
 import { CacheHandler, MemoryCache } from '../src'
 import { mockNextHandlerContext, mockPageData } from './mocks'
 
-jest.mock('../cacheStrategy/memory', () => {
+jest.mock('../src/cacheStrategy/memory', () => {
   return {
     MemoryCache: jest.fn().mockImplementation(() => ({
       get: jest.fn(),
@@ -27,14 +27,16 @@ describe('CacheHandler', () => {
       cacheStrategy: new MemoryCache(),
       addDeviceSplit: false,
       overrideHeaders: {},
-      expectedCacheSuffix: ''
+      expectedCacheSuffix: '',
+      description: 'without split cache'
     },
     {
       cacheCookie: 'abtest',
       cacheStrategy: new MemoryCache(),
       addDeviceSplit: false,
       overrideHeaders: {},
-      expectedCacheSuffix: ''
+      expectedCacheSuffix: '',
+      description: 'with cookie key and without cookie header'
     },
     {
       cacheCookie: 'user',
@@ -43,14 +45,16 @@ describe('CacheHandler', () => {
       overrideHeaders: {
         cookie: 'user=guest;'
       },
-      expectedCacheSuffix: 'cookie(user=guest)'
+      expectedCacheSuffix: 'cookie(user=guest)',
+      description: 'with cookie key and header'
     },
     {
       cacheQuery: 'feature',
       cacheStrategy: new MemoryCache(),
       addDeviceSplit: false,
       overrideHeaders: {},
-      expectedCacheSuffix: ''
+      expectedCacheSuffix: '',
+      description: 'with query key and without headers'
     },
     {
       cacheQuery: 'feature',
@@ -59,7 +63,8 @@ describe('CacheHandler', () => {
       overrideHeaders: {
         'x-invoke-query': encodeURIComponent(JSON.stringify({ feature: '123' }))
       },
-      expectedCacheSuffix: 'query(feature=123)'
+      expectedCacheSuffix: 'query(feature=123)',
+      description: 'with query key and headers'
     },
     {
       cacheCookie: 'abtest',
@@ -70,10 +75,11 @@ describe('CacheHandler', () => {
         cookie: 'abtest=1;',
         'x-invoke-query': encodeURIComponent(JSON.stringify({ feature: '2' }))
       },
-      expectedCacheSuffix: 'cookie(abtest=1)-query(feature=2)'
+      expectedCacheSuffix: 'cookie(abtest=1)-query(feature=2)',
+      description: 'with cookie and query'
     }
   ])(
-    'should handle cache',
+    'should handle cache $description',
     ({ cacheCookie, cacheQuery, cacheStrategy, addDeviceSplit, overrideHeaders, expectedCacheSuffix }) => {
       if (cacheCookie) {
         CacheHandler.addCookie(cacheCookie)
