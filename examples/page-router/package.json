@@ -1,5 +1,5 @@
 {
-  "name": "example",
+  "name": "example-page-router",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -13,7 +13,7 @@
     "react": "^18",
     "react-dom": "^18",
     "next": "14.1.0",
-    "next-cache-handler": "file:../"
+    "next-cache-handler": "file:../../"
   },
   "devDependencies": {
     "typescript": "^5",
