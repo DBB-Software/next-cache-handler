@@ -32,7 +32,8 @@ export class RedisCache implements CacheStrategy {
           JSON.stringify({
             value: data,
             lastModified: Date.now(),
-            tags: ctx.tags
+            tags: ctx.tags,
+            revalidate: ctx.revalidate
           })
         )
       } else {

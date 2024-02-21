@@ -3,7 +3,7 @@ export const getStaticProps = async () => {
     .then((r) => r.json())
     .catch(() => ({ title: 'Pregenerated page data.' }))
 
-  return { props: res }
+  return { props: res, revalidate: 15 }
 }
 
 export default function Home({ title }: { title: string }) {
