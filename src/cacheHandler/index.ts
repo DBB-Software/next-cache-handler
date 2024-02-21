@@ -97,12 +97,13 @@ export class CacheHandler implements Omit<CacheStrategy, 'logger'> {
   //   }
 
   static addCookie(value: string) {
-    this.cacheCookies = [...new Set([...CacheHandler.cacheCookies, value])]
+    CacheHandler.cacheCookies.push(value)
+
     return this
   }
 
   static addQuery(value: string) {
-    this.cacheQueries = [...new Set([...CacheHandler.cacheQueries, value])]
+    CacheHandler.cacheQueries.push(value)
 
     return this
   }
