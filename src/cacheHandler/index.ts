@@ -77,24 +77,29 @@ export class CacheHandler implements Omit<CacheStrategy, 'logger'> {
     return [key, this.device, this.cookieCacheKey, this.queryCacheKey].filter(Boolean).join('-')
   }
 
+  checkIsStaleCache(pageData: any | null) {
+    if (pageData?.revalidate) {
+      return Date.now() > pageData.lastModified + pageData.revalidate * 1000
+    }
+
+    return false
+  }
+
   async get(...params: Parameters<CacheStrategy['get']>) {
     const [key, ctx] = params
-    return CacheHandler.cache.get(this.getPageCacheKey(key), { ...ctx, serverAppPath: this.serverAppPath })
+    const data = await CacheHandler.cache.get(this.getPageCacheKey(key), { ...ctx, serverAppPath: this.serverAppPath })
+    const isStaleData = this.checkIsStaleCache(data)
+
+    // Send page to revalidate
+    if (isStaleData || !data) return null
+
+    return data
   }
 
   async set(...params: Parameters<CacheStrategy['set']>) {
     const [cacheKey, data, ctx] = params
     return CacheHandler.cache.set(this.getPageCacheKey(cacheKey), data, { ...ctx, serverAppPath: this.serverAppPath })
   }
-
-  // TODO: check re-validation
-  //   async revalidateTag(tag: string) {
-  //     cache.forEach((value, key) => {
-  //       if (value.tag.includes(tag)) {
-  //         cache.delete(key)
-  //       }
-  //     })
-  //   }
 
   static addCookie(value: string) {
     CacheHandler.cacheCookies.push(value)

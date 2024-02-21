@@ -30,8 +30,9 @@ export class FileSystemCache implements CacheStrategy {
           filePath,
           JSON.stringify({
             value: data,
-            lastModified: new Date(),
-            tags: ctx.tags
+            lastModified: Date.now(),
+            tags: ctx.tags,
+            revalidate: ctx.revalidate
           })
         )
       } else {

@@ -20,7 +20,8 @@ export class MemoryCache implements CacheStrategy {
       mapCache.set(cacheKey, {
         value: data,
         lastModified: Date.now(),
-        tags: ctx.tags
+        tags: ctx.tags,
+        revalidate: ctx.revalidate
       })
     } else {
       mapCache.delete(cacheKey)
