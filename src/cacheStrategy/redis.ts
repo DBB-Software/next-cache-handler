@@ -1,5 +1,5 @@
 import { createClient, RedisClientType, RedisClientOptions } from 'redis'
-import type { CacheContext, CacheEntry, CacheStrategy } from '../types'
+import type { CacheEntry, CacheStrategy } from '../types'
 
 export class RedisCache implements CacheStrategy {
   client: RedisClientType<any, any, any>
@@ -23,5 +23,11 @@ export class RedisCache implements CacheStrategy {
     await this.client.del(key)
   }
 
-  async deleteAllByKeyMatch(key: string, ctx: CacheContext): Promise<void> {}
+  async deleteAllByKeyMatch(key: string): Promise<void> {
+    const allKeys = this.client.scanIterator({ MATCH: key })
+
+    for await (const cacheKey of allKeys) {
+      this.client.del(cacheKey)
+    }
+  }
 }
