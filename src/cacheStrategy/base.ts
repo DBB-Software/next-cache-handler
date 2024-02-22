@@ -32,5 +32,7 @@ export interface CacheStrategy {
     }
   ): Promise<any>
 
+  deleteAllByKeyMatch(key: string, serverAppPath?: string): void
+
   logger: BaseLogger
 }

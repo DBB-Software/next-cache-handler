@@ -1,50 +1,27 @@
 import { createClient, RedisClientType, RedisClientOptions } from 'redis'
-import { type CacheStrategy } from './base'
-import { ConsoleLogger, type BaseLogger } from '../logger'
+import type { CacheContext, CacheEntry, CacheStrategy } from '../types'
 
 export class RedisCache implements CacheStrategy {
   client: RedisClientType<any, any, any>
-  logger: BaseLogger
 
-  constructor(options: RedisClientOptions, logger?: BaseLogger) {
-    this.logger = logger || new ConsoleLogger()
+  constructor(options: RedisClientOptions) {
     this.client = createClient(options)
-    this.client.on('error', (err) => this.logger.error('Failed to connect redis client', err)).connect()
+    this.client.connect()
   }
 
-  async get(cacheKey: string) {
-    try {
-      const pageData = await this.client.get(cacheKey)
-      if (!pageData) return null
-      return JSON.parse(pageData)
-    } catch (err) {
-      this.logger.info(`Failed to get page data from redis for ${cacheKey}`, err)
-      return null
-    }
+  async get(key: string): Promise<CacheEntry | null> {
+    const pageData = await this.client.get(key)
+    if (!pageData) return null
+    return JSON.parse(pageData)
   }
 
-  async set(...params: Parameters<CacheStrategy['set']>) {
-    const [cacheKey, data, ctx] = params
-    try {
-      if (data) {
-        await this.client.set(
-          cacheKey,
-          JSON.stringify({
-            value: data,
-            lastModified: Date.now(),
-            tags: ctx.tags,
-            revalidate: ctx.revalidate
-          })
-        )
-      } else {
-        try {
-          await this.client.del(cacheKey)
-        } catch (err) {
-          this.logger.info(`Failed to delete page data from redis for ${cacheKey}`, err)
-        }
-      }
-    } catch (err) {
-      this.logger.info(`Failed to set page data to redis for ${cacheKey}`, err)
-    }
+  async set(key: string, data: CacheEntry): Promise<void> {
+    await this.client.set(key, JSON.stringify(data))
   }
+
+  async delete(key: string): Promise<void> {
+    await this.client.del(key)
+  }
+
+  async deleteAllByKeyMatch(key: string, ctx: CacheContext): Promise<void> {}
 }
