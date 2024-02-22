@@ -6,10 +6,10 @@ import type {
   NextCacheHandlerContext,
   CacheStrategy,
   CacheHandlerContext,
-  CacheEntry
+  CacheEntry,
+  IncrementalCacheValue
 } from '../types'
 import path from 'path'
-import { IncrementalCacheValue } from '../cacheStrategy'
 
 export class CacheHandler implements CacheHandlerType {
   static cacheCookies: string[] = []

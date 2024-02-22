@@ -1,5 +1,5 @@
 import { RedisCache } from '../src/cacheStrategy/redis'
-import { mockPageData, mockHandlerMethodContext } from './mocks'
+import { mockCacheEntry } from './mocks'
 
 const store = new Map()
 const mockReadKey = jest.fn().mockImplementation((path) => store.get(path))
@@ -9,7 +9,7 @@ const mockDeleteKey = jest.fn().mockImplementation((path) => store.delete(path))
 jest.mock('redis', () => {
   return {
     createClient: jest.fn().mockReturnValue({
-      on: jest.fn(() => ({ connect: jest.fn() })),
+      connect: jest.fn(),
       get: jest.fn((...params) => mockReadKey(...params)),
       set: jest.fn((...params) => mockWriteKey(...params)),
       del: jest.fn((...params) => mockDeleteKey(...params))
@@ -17,14 +17,7 @@ jest.mock('redis', () => {
   }
 })
 
-const mockLoggerFN = jest.fn()
-jest.mock('../src/logger/base.ts', () => ({
-  ConsoleLogger: jest.fn().mockImplementation(() => ({
-    info: jest.fn((...params) => mockLoggerFN(...params))
-  }))
-}))
-
-const memoryCache = new RedisCache({ url: 'mock-url' })
+const redisCache = new RedisCache({ url: 'mock-url' })
 const cacheKey = 'test'
 
 describe('RedisCache', () => {
@@ -35,45 +28,30 @@ describe('RedisCache', () => {
     jest.restoreAllMocks()
   })
   it('should set and read the cache', async () => {
-    await memoryCache.set(cacheKey, mockPageData, mockHandlerMethodContext)
+    await redisCache.set(cacheKey, mockCacheEntry)
+    expect(redisCache.client.set).toHaveBeenCalledTimes(1)
+    expect(redisCache.client.set).toHaveBeenCalledWith(cacheKey, JSON.stringify(mockCacheEntry))
 
-    const result = await memoryCache.get(cacheKey)
-    expect(result?.value).toEqual(mockPageData)
+    const result = await redisCache.get(cacheKey)
+    expect(result).toEqual(mockCacheEntry)
+    expect(redisCache.client.get).toHaveBeenCalledTimes(1)
+    expect(redisCache.client.get).toHaveBeenCalledWith(cacheKey)
   })
 
-  it('should clear cache for given key', async () => {
-    await memoryCache.set(cacheKey, mockPageData, mockHandlerMethodContext)
-    const result = await memoryCache.get(cacheKey)
-    expect(result?.value).toEqual(mockPageData)
+  it('should delete cache value', async () => {
+    await redisCache.set(cacheKey, mockCacheEntry)
+    expect(redisCache.client.set).toHaveBeenCalledTimes(1)
+    expect(redisCache.client.set).toHaveBeenCalledWith(cacheKey, JSON.stringify(mockCacheEntry))
 
-    await memoryCache.set(cacheKey, null, mockHandlerMethodContext)
-    expect(await memoryCache.get(cacheKey)).toBeNull()
-  })
+    const result = await redisCache.get(cacheKey)
+    expect(result).toEqual(mockCacheEntry)
+    expect(redisCache.client.get).toHaveBeenCalledTimes(1)
+    expect(redisCache.client.get).toHaveBeenCalledWith(cacheKey)
 
-  it('should fail to read cache value', async () => {
-    mockReadKey.mockRejectedValueOnce('Error to read')
-    expect(await memoryCache.get(cacheKey)).toBeNull()
-
-    expect(mockLoggerFN).toHaveBeenCalledTimes(1)
-    expect(mockLoggerFN).toHaveBeenCalledWith(`Failed to get page data from redis for ${cacheKey}`, 'Error to read')
-  })
-
-  it('should fail to write cache value', async () => {
-    mockWriteKey.mockRejectedValueOnce('Error to write')
-    await memoryCache.set(cacheKey, mockPageData, mockHandlerMethodContext)
-
-    expect(mockLoggerFN).toHaveBeenCalledTimes(1)
-    expect(mockLoggerFN).toHaveBeenCalledWith(`Failed to set page data to redis for ${cacheKey}`, 'Error to write')
-  })
-
-  it('should fail to clear cache value', async () => {
-    mockDeleteKey.mockRejectedValueOnce('Error to delete')
-    await memoryCache.set(cacheKey, null, mockHandlerMethodContext)
-
-    expect(mockLoggerFN).toHaveBeenCalledTimes(1)
-    expect(mockLoggerFN).toHaveBeenCalledWith(
-      `Failed to delete page data from redis for ${cacheKey}`,
-      'Error to delete'
-    )
+    await redisCache.delete(cacheKey)
+    const updatedResult = await redisCache.get(cacheKey)
+    expect(updatedResult).toBeNull()
+    expect(redisCache.client.del).toHaveBeenCalledTimes(1)
+    expect(redisCache.client.del).toHaveBeenCalledWith(cacheKey)
   })
 })

@@ -25,6 +25,7 @@ export class FileSystemCache implements CacheStrategy {
   async deleteAllByKeyMatch(key: string, ctx: CacheContext) {
     const cacheDir = await fs.readdir(path.join(ctx.serverCacheDirPath, 'dataCache'))
     const filesToDelete = cacheDir.filter((fileName: string) => fileName.startsWith(key))
-    await Promise.allSettled(filesToDelete.map((file) => fs.rm(file)))
+
+    await Promise.allSettled(filesToDelete.map((file) => fs.rm(path.join(ctx.serverCacheDirPath, file))))
   }
 }

@@ -1,9 +1,9 @@
-import { CacheHandler, MemoryCache } from '../src'
-import { mockNextHandlerContext, mockPageData } from './mocks'
+import { CacheHandler, FileSystemCache } from '../src'
+import { mockNextHandlerContext, mockPageData, mockHandlerMethodContext, mockCacheStrategyContext } from './mocks'
 
-jest.mock('../src/cacheStrategy/memory', () => {
+jest.mock('../src/cacheStrategy/fileSystem', () => {
   return {
-    MemoryCache: jest.fn().mockImplementation(() => ({
+    FileSystemCache: jest.fn().mockImplementation(() => ({
       get: jest.fn(),
       set: jest.fn()
     }))
@@ -11,6 +11,10 @@ jest.mock('../src/cacheStrategy/memory', () => {
 })
 
 describe('CacheHandler', () => {
+  beforeAll(() => {
+    jest.useFakeTimers().setSystemTime(Date.now())
+  })
+
   afterEach(() => {
     CacheHandler.cacheCookies = []
     CacheHandler.cacheQueries = []
@@ -19,12 +23,13 @@ describe('CacheHandler', () => {
   })
 
   afterAll(() => {
+    jest.useRealTimers()
     jest.restoreAllMocks()
   })
 
   it.each([
     {
-      cacheStrategy: new MemoryCache(),
+      cacheStrategy: new FileSystemCache(),
       addDeviceSplit: false,
       overrideHeaders: {},
       expectedCacheSuffix: '',
@@ -32,7 +37,7 @@ describe('CacheHandler', () => {
     },
     {
       cacheCookie: 'abtest',
-      cacheStrategy: new MemoryCache(),
+      cacheStrategy: new FileSystemCache(),
       addDeviceSplit: false,
       overrideHeaders: {},
       expectedCacheSuffix: '',
@@ -40,7 +45,7 @@ describe('CacheHandler', () => {
     },
     {
       cacheCookie: 'user',
-      cacheStrategy: new MemoryCache(),
+      cacheStrategy: new FileSystemCache(),
       addDeviceSplit: false,
       overrideHeaders: {
         cookie: 'user=guest;'
@@ -50,7 +55,7 @@ describe('CacheHandler', () => {
     },
     {
       cacheQuery: 'feature',
-      cacheStrategy: new MemoryCache(),
+      cacheStrategy: new FileSystemCache(),
       addDeviceSplit: false,
       overrideHeaders: {},
       expectedCacheSuffix: '',
@@ -58,7 +63,7 @@ describe('CacheHandler', () => {
     },
     {
       cacheQuery: 'feature',
-      cacheStrategy: new MemoryCache(),
+      cacheStrategy: new FileSystemCache(),
       addDeviceSplit: false,
       overrideHeaders: {
         'x-invoke-query': encodeURIComponent(JSON.stringify({ feature: '123' }))
@@ -69,7 +74,7 @@ describe('CacheHandler', () => {
     {
       cacheCookie: 'abtest',
       cacheQuery: 'feature',
-      cacheStrategy: new MemoryCache(),
+      cacheStrategy: new FileSystemCache(),
       addDeviceSplit: false,
       overrideHeaders: {
         cookie: 'abtest=1;',
@@ -96,15 +101,23 @@ describe('CacheHandler', () => {
       })
       const pageKey = 'index'
       const currentCacheKey = [pageKey, expectedCacheSuffix].filter(Boolean).join('-')
-      const handlerMethodContext = { serverAppPath: mockNextHandlerContext.serverDistDir! }
 
-      cacheHandler.get(pageKey, handlerMethodContext)
+      cacheHandler.get(pageKey)
       expect(cacheStrategy.get).toHaveBeenCalledTimes(1)
-      expect(cacheStrategy.get).toHaveBeenCalledWith(currentCacheKey, handlerMethodContext)
+      expect(cacheStrategy.get).toHaveBeenCalledWith(currentCacheKey, mockCacheStrategyContext)
 
-      cacheHandler.set(pageKey, mockPageData, handlerMethodContext)
+      cacheHandler.set(pageKey, mockPageData, mockHandlerMethodContext)
       expect(cacheStrategy.set).toHaveBeenCalledTimes(1)
-      expect(cacheStrategy.set).toHaveBeenCalledWith(currentCacheKey, mockPageData, handlerMethodContext)
+      expect(cacheStrategy.set).toHaveBeenCalledWith(
+        currentCacheKey,
+        {
+          value: mockPageData,
+          lastModified: Date.now(),
+          tags: mockHandlerMethodContext.tags,
+          revalidate: mockHandlerMethodContext.revalidate
+        },
+        mockCacheStrategyContext
+      )
     }
   )
 })

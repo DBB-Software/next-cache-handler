@@ -1,28 +1,34 @@
 import { MemoryCache } from '../src/cacheStrategy/memory'
-import { mockPageData, mockHandlerMethodContext } from './mocks'
+import { mockCacheEntry } from './mocks'
 
 const memoryCache = new MemoryCache()
 const cacheKey = 'test'
+const cacheKey2 = 'test-2'
 
 describe('MemoryCache', () => {
   it('should set and read the cache', () => {
-    memoryCache.set(cacheKey, mockPageData, mockHandlerMethodContext)
-
-    const result = memoryCache.get(cacheKey)
-    expect(result.value).toEqual(mockPageData)
-    expect(result.lastModified).toBeDefined()
-    expect(result.tags).toEqual(mockHandlerMethodContext.tags)
+    memoryCache.set(cacheKey, mockCacheEntry)
+    expect(memoryCache.get(cacheKey)).toEqual(mockCacheEntry)
   })
 
-  it('should clear cache for given key', () => {
-    memoryCache.set(cacheKey, mockPageData, mockHandlerMethodContext)
+  it('should delete cache entry', () => {
+    memoryCache.set(cacheKey, mockCacheEntry)
+    expect(memoryCache.get(cacheKey)).toEqual(mockCacheEntry)
 
-    const result = memoryCache.get(cacheKey)
-    expect(result.value).toEqual(mockPageData)
-    expect(result.lastModified).toBeDefined()
-    expect(result.tags).toEqual(mockHandlerMethodContext.tags)
+    memoryCache.delete(cacheKey)
+    expect(memoryCache.get(cacheKey)).toBeFalsy()
+  })
 
-    memoryCache.set(cacheKey, null, mockHandlerMethodContext)
-    expect(memoryCache.get(cacheKey)).toBeNull()
+  it('should delete entries by kay match', () => {
+    memoryCache.set(cacheKey, mockCacheEntry)
+    memoryCache.set(cacheKey2, mockCacheEntry)
+
+    expect(memoryCache.get(cacheKey)).toEqual(mockCacheEntry)
+    expect(memoryCache.get(cacheKey2)).toEqual(mockCacheEntry)
+
+    memoryCache.deleteAllByKeyMatch(cacheKey)
+
+    expect(memoryCache.get(cacheKey)).toBeFalsy()
+    expect(memoryCache.get(cacheKey2)).toBeFalsy()
   })
 })

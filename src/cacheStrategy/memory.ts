@@ -16,12 +16,12 @@ export class MemoryCache implements CacheStrategy {
   }
 
   async deleteAllByKeyMatch(key: string) {
-    const allKeys = mapCache.keys()
+    const allKeys = [...mapCache.keys()]
 
-    for (const cacheKey in allKeys) {
+    allKeys.forEach((cacheKey) => {
       if (cacheKey.startsWith(key)) {
         mapCache.delete(cacheKey)
       }
-    }
+    })
   }
 }

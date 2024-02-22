@@ -1,7 +1,7 @@
 import type { IncrementalCacheKindHint, IncrementalCacheValue } from 'next/dist/server/response-cache'
 import type { CacheHandlerContext as NextCacheHandlerContext } from 'next/dist/server/lib/incremental-cache'
 
-export { NextCacheHandlerContext }
+export { NextCacheHandlerContext, IncrementalCacheValue, IncrementalCacheKindHint }
 
 export type LoggerInputParams = Parameters<typeof console.log>
 
