@@ -23,7 +23,7 @@ Create a `cacheHandler.js` (or `.ts`) file in your project.
 import { CacheHandler, FileSystemCache } from 'next-cache-handler'
 
 CacheHandler
-    .addCacheStrategy(new FileSystemCache())
+    .setCacheStrategy(new FileSystemCache())
     .addCookie('my-cookie-1')
     .addCookie('my-cookie-2')
     .addQuery('my-query-1')
@@ -94,10 +94,10 @@ Enables to fragmentate experience based on current `User-Agent` of the request.
 CacheHandler.addDeviceSplit()
 ```
 
-### `addCacheStrategy`
+### `setCacheStrategy`
 Applies given strategy to cache page data.
 ```
-CacheHandler.addCacheStrategy(new MemoryCache())
+CacheHandler.setCacheStrategy(new MemoryCache())
 ```
 
 # Logging
@@ -118,5 +118,5 @@ class MyCustomLogger implements BaseLogger {
     }
 }
 
-CacheHandler.addCacheStrategy(new FileSystemCache(new MyCustomLogger()))
+CacheHandler.setCacheStrategy(new FileSystemCache(new MyCustomLogger()))
 ```

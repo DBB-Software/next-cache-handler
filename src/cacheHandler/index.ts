@@ -144,8 +144,14 @@ export class CacheHandler implements CacheHandlerType {
     return this
   }
 
-  static addCacheStrategy(cache: CacheStrategy) {
+  static setCacheStrategy(cache: CacheStrategy) {
     CacheHandler.cache = cache
+
+    return this
+  }
+
+  static setLogger(logger: BaseLogger) {
+    CacheHandler.logger = logger
 
     return this
   }

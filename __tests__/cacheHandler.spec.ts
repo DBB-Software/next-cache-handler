@@ -93,7 +93,7 @@ describe('CacheHandler', () => {
         CacheHandler.addQuery(cacheQuery)
       }
       CacheHandler.enableDeviceSplit = addDeviceSplit
-      CacheHandler.addCacheStrategy(cacheStrategy)
+      CacheHandler.setCacheStrategy(cacheStrategy)
 
       const cacheHandler = new CacheHandler({
         ...mockNextHandlerContext,

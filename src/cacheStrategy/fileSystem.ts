@@ -15,11 +15,11 @@ export class FileSystemCache implements CacheStrategy {
 
   async set(key: string, data: CacheEntry, ctx: CacheContext): Promise<void> {
     const filePath = path.join(ctx.serverCacheDirPath, `${key}.json`)
-    return fs.writeFile(filePath, JSON.stringify(data))
+    await fs.writeFile(filePath, JSON.stringify(data))
   }
 
   async delete(key: string, ctx: CacheContext) {
-    return fs.rm(path.join(ctx.serverCacheDirPath, `${key}.json`))
+    await fs.rm(path.join(ctx.serverCacheDirPath, `${key}.json`))
   }
 
   async deleteAllByKeyMatch(key: string, ctx: CacheContext) {
