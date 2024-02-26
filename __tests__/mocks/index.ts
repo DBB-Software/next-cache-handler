@@ -1,15 +1,12 @@
-import { IncrementalCacheValue, CacheHandlerContext } from '../../src'
+import {
+  IncrementalCacheValue,
+  NextCacheHandlerContext,
+  CacheEntry,
+  CacheContext,
+  CacheHandlerContext
+} from '../../src'
 
-export const mockPageData = {
-  pageData: {},
-  html: '',
-  kind: 'PAGE',
-  postponed: undefined,
-  headers: undefined,
-  status: 200
-} satisfies IncrementalCacheValue
-
-export const mockNextHandlerContext: CacheHandlerContext = {
+export const mockNextHandlerContext: NextCacheHandlerContext = {
   revalidatedTags: [],
   experimental: {
     ppr: false
@@ -17,7 +14,29 @@ export const mockNextHandlerContext: CacheHandlerContext = {
   _appDir: true,
   _pagesDir: false,
   _requestHeaders: {},
-  serverDistDir: __dirname
+  serverDistDir: 'path-to-cache'
 }
 
-export const mockHandlerMethodContext = { tags: ['page'], serverAppPath: '' }
+export const mockHandlerMethodContext: CacheHandlerContext = {
+  tags: ['page'],
+  revalidate: 60,
+  serverCacheDirPath: `${mockNextHandlerContext.serverDistDir}/cacheData`
+}
+
+export const mockPageData: IncrementalCacheValue = {
+  pageData: {},
+  html: '',
+  kind: 'PAGE',
+  postponed: undefined,
+  headers: undefined,
+  status: 200
+}
+
+export const mockCacheEntry: CacheEntry = {
+  value: mockPageData,
+  lastModified: 100000
+}
+
+export const mockCacheStrategyContext: CacheContext = {
+  serverCacheDirPath: mockHandlerMethodContext.serverCacheDirPath
+}

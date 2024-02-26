@@ -1,11 +1,17 @@
 import cookieParser from 'cookie'
 import parser from 'ua-parser-js'
-import type { CacheHandlerContext } from 'next/dist/server/lib/incremental-cache'
-import { type CacheStrategy } from '../cacheStrategy/base'
+import type {
+  CacheHandler as CacheHandlerType,
+  BaseLogger,
+  NextCacheHandlerContext,
+  CacheStrategy,
+  CacheHandlerContext,
+  CacheEntry,
+  IncrementalCacheValue
+} from '../types'
+import path from 'path'
 
-export type { CacheHandlerContext }
-
-export class CacheHandler implements Omit<CacheStrategy, 'logger'> {
+export class CacheHandler implements CacheHandlerType {
   static cacheCookies: string[] = []
 
   static cacheQueries: string[] = []
@@ -14,7 +20,9 @@ export class CacheHandler implements Omit<CacheStrategy, 'logger'> {
 
   static cache: CacheStrategy
 
-  nextOptions: CacheHandlerContext
+  static logger: BaseLogger
+
+  nextOptions: NextCacheHandlerContext
 
   cookieCacheKey: string
 
@@ -22,13 +30,13 @@ export class CacheHandler implements Omit<CacheStrategy, 'logger'> {
 
   device?: string
 
-  serverAppPath: string
+  serverCacheDirPath: string
 
-  constructor(nextOptions: CacheHandlerContext) {
+  constructor(nextOptions: NextCacheHandlerContext) {
     this.nextOptions = nextOptions
     this.cookieCacheKey = this.buildCookiesCacheKey()
     this.queryCacheKey = this.buildQueryCacheKey()
-    this.serverAppPath = nextOptions.serverDistDir || ''
+    this.serverCacheDirPath = path.join(nextOptions.serverDistDir!, 'cacheData')
 
     if (CacheHandler.enableDeviceSplit) {
       this.device = this.getCurrentDeviceType()
@@ -77,7 +85,7 @@ export class CacheHandler implements Omit<CacheStrategy, 'logger'> {
     return [key, this.device, this.cookieCacheKey, this.queryCacheKey].filter(Boolean).join('-')
   }
 
-  checkIsStaleCache(pageData: any | null) {
+  checkIsStaleCache(pageData: CacheEntry | null) {
     if (pageData?.revalidate) {
       return Date.now() > pageData.lastModified + pageData.revalidate * 1000
     }
@@ -85,9 +93,11 @@ export class CacheHandler implements Omit<CacheStrategy, 'logger'> {
     return false
   }
 
-  async get(...params: Parameters<CacheStrategy['get']>) {
-    const [key, ctx] = params
-    const data = await CacheHandler.cache.get(this.getPageCacheKey(key), { ...ctx, serverAppPath: this.serverAppPath })
+  async get(cacheKey: string): Promise<CacheEntry | null> {
+    const data = await CacheHandler.cache.get(this.getPageCacheKey(cacheKey), {
+      serverCacheDirPath: this.serverCacheDirPath
+    })
+
     const isStaleData = this.checkIsStaleCache(data)
 
     // Send page to revalidate
@@ -96,9 +106,24 @@ export class CacheHandler implements Omit<CacheStrategy, 'logger'> {
     return data
   }
 
-  async set(...params: Parameters<CacheStrategy['set']>) {
-    const [cacheKey, data, ctx] = params
-    return CacheHandler.cache.set(this.getPageCacheKey(cacheKey), data, { ...ctx, serverAppPath: this.serverAppPath })
+  async set(cacheKey: string, data: IncrementalCacheValue | null, ctx: CacheHandlerContext): Promise<void> {
+    const key = this.getPageCacheKey(cacheKey)
+    const context = {
+      serverCacheDirPath: this.serverCacheDirPath
+    }
+    if (!data) {
+      return await CacheHandler.cache.delete(key, context)
+    }
+    return CacheHandler.cache.set(
+      key,
+      {
+        value: data,
+        lastModified: Date.now(),
+        tags: ctx.tags,
+        revalidate: ctx.revalidate
+      },
+      context
+    )
   }
 
   static addCookie(value: string) {
@@ -119,8 +144,14 @@ export class CacheHandler implements Omit<CacheStrategy, 'logger'> {
     return this
   }
 
-  static addCacheStrategy(cache: CacheStrategy) {
+  static setCacheStrategy(cache: CacheStrategy) {
     CacheHandler.cache = cache
+
+    return this
+  }
+
+  static setLogger(logger: BaseLogger) {
+    CacheHandler.logger = logger
 
     return this
   }

@@ -1,28 +1,31 @@
 import { FileSystemCache } from '../src/cacheStrategy/fileSystem'
-import { mockPageData, mockHandlerMethodContext } from './mocks'
+import { mockCacheEntry, mockCacheStrategyContext } from './mocks'
 
-const memoryCache = new FileSystemCache()
+const fileSystemCache = new FileSystemCache()
 const cacheKey = 'test'
+const cacheKey2 = 'test-2'
+
+const cacheFilePath = `${mockCacheStrategyContext.serverCacheDirPath}/${cacheKey}.json`
+const cacheFile2Path = `${mockCacheStrategyContext.serverCacheDirPath}/${cacheKey2}.json`
 
 const store = new Map()
 const mockReadFile = jest.fn().mockImplementation((path) => store.get(path))
 const mockWriteFile = jest.fn().mockImplementation((path, data) => store.set(path, data))
-const mockUnlink = jest.fn().mockImplementation((path) => store.delete(path))
+const mockRm = jest.fn().mockImplementation((path) => store.delete(path))
+const mockReaddir = jest
+  .fn()
+  .mockImplementation(() =>
+    [...store.keys()].map((k) => k.replace(`${mockCacheStrategyContext.serverCacheDirPath}/`, ''))
+  )
 
 jest.mock('fs/promises', () => {
   return {
     readFile: jest.fn((...params) => mockReadFile(...params)),
     writeFile: jest.fn((...params) => mockWriteFile(...params)),
-    unlink: jest.fn((...params) => mockUnlink(...params))
+    rm: jest.fn((...params) => mockRm(...params)),
+    readdir: jest.fn((...params) => mockReaddir(...params))
   }
 })
-
-const mockLoggerFN = jest.fn()
-jest.mock('../src/logger/base.ts', () => ({
-  ConsoleLogger: jest.fn().mockImplementation(() => ({
-    info: jest.fn((...params) => mockLoggerFN(...params))
-  }))
-}))
 
 describe('FileSystemCache', () => {
   afterEach(() => {
@@ -32,42 +35,50 @@ describe('FileSystemCache', () => {
     jest.restoreAllMocks()
   })
   it('should set and read the cache', async () => {
-    await memoryCache.set(cacheKey, mockPageData, mockHandlerMethodContext)
+    await fileSystemCache.set(cacheKey, mockCacheEntry, mockCacheStrategyContext)
+    expect(mockWriteFile).toHaveBeenCalledTimes(1)
+    expect(mockWriteFile).toHaveBeenCalledWith(cacheFilePath, JSON.stringify(mockCacheEntry))
 
-    const result = await memoryCache.get(cacheKey, mockHandlerMethodContext)
-    expect(result?.value).toEqual(mockPageData)
+    const result = await fileSystemCache.get(cacheKey, mockCacheStrategyContext)
+    expect(result).toEqual(mockCacheEntry)
+    expect(mockReadFile).toHaveBeenCalledTimes(1)
+    expect(mockReadFile).toHaveBeenCalledWith(cacheFilePath, { encoding: 'utf-8' })
   })
 
-  it('should clear cache for given key', async () => {
-    await memoryCache.set(cacheKey, mockPageData, mockHandlerMethodContext)
-    const result = await memoryCache.get(cacheKey, mockHandlerMethodContext)
-    expect(result?.value).toEqual(mockPageData)
+  it('should delete cache value', async () => {
+    await fileSystemCache.set(cacheKey, mockCacheEntry, mockCacheStrategyContext)
+    expect(mockWriteFile).toHaveBeenCalledTimes(1)
+    expect(mockWriteFile).toHaveBeenCalledWith(cacheFilePath, JSON.stringify(mockCacheEntry))
 
-    await memoryCache.set(cacheKey, null, mockHandlerMethodContext)
-    expect(await memoryCache.get(cacheKey, mockHandlerMethodContext)).toBeNull()
+    const result = await fileSystemCache.get(cacheKey, mockCacheStrategyContext)
+    expect(result).toEqual(mockCacheEntry)
+    expect(mockReadFile).toHaveBeenCalledTimes(1)
+    expect(mockReadFile).toHaveBeenCalledWith(cacheFilePath, { encoding: 'utf-8' })
+
+    await fileSystemCache.delete(cacheKey, mockCacheStrategyContext)
+    const updatedResult = await fileSystemCache.get(cacheKey, mockCacheStrategyContext)
+    expect(updatedResult).toBeNull()
+    expect(mockRm).toHaveBeenCalledTimes(1)
+    expect(mockRm).toHaveBeenCalledWith(cacheFilePath)
   })
 
-  it('should fail to read cache value', async () => {
-    mockReadFile.mockRejectedValueOnce('Error to read')
-    expect(await memoryCache.get(cacheKey, mockHandlerMethodContext)).toBeNull()
+  it('should delete all cache entries by key match', async () => {
+    await fileSystemCache.set(cacheKey, mockCacheEntry, mockCacheStrategyContext)
+    await fileSystemCache.set(cacheKey2, mockCacheEntry, mockCacheStrategyContext)
 
-    expect(mockLoggerFN).toHaveBeenCalledTimes(1)
-    expect(mockLoggerFN).toHaveBeenCalledWith(`Failed to read cache for ${cacheKey}`, 'Error to read')
-  })
+    const result1 = await fileSystemCache.get(cacheKey, mockCacheStrategyContext)
+    const result2 = await fileSystemCache.get(cacheKey2, mockCacheStrategyContext)
+    expect(result1).toEqual(mockCacheEntry)
+    expect(result2).toEqual(mockCacheEntry)
 
-  it('should fail to write cache value', async () => {
-    mockWriteFile.mockRejectedValueOnce('Error to write')
-    await memoryCache.set(cacheKey, mockPageData, mockHandlerMethodContext)
+    await fileSystemCache.deleteAllByKeyMatch(cacheKey, mockCacheStrategyContext)
+    expect(mockRm).toHaveBeenCalledTimes(2)
+    expect(mockRm).toHaveBeenNthCalledWith(1, cacheFilePath)
+    expect(mockRm).toHaveBeenNthCalledWith(2, cacheFile2Path)
 
-    expect(mockLoggerFN).toHaveBeenCalledTimes(1)
-    expect(mockLoggerFN).toHaveBeenCalledWith(`Failed to set cache for ${cacheKey}`, 'Error to write')
-  })
-
-  it('should fail to clear cache value', async () => {
-    mockUnlink.mockRejectedValueOnce('Error to delete')
-    await memoryCache.set(cacheKey, null, mockHandlerMethodContext)
-
-    expect(mockLoggerFN).toHaveBeenCalledTimes(1)
-    expect(mockLoggerFN).toHaveBeenCalledWith(`Failed to delete cache for ${cacheKey}`, 'Error to delete')
+    const updatedResult1 = await fileSystemCache.get(cacheKey, mockCacheStrategyContext)
+    const updatedResult2 = await fileSystemCache.get(cacheKey2, mockCacheStrategyContext)
+    expect(updatedResult1).toBeNull()
+    expect(updatedResult2).toBeNull()
   })
 })

@@ -1,5 +1,5 @@
 import { RedisCache } from '../src/cacheStrategy/redis'
-import { mockPageData, mockHandlerMethodContext } from './mocks'
+import { mockCacheEntry } from './mocks'
 
 const store = new Map()
 const mockReadKey = jest.fn().mockImplementation((path) => store.get(path))
@@ -9,23 +9,18 @@ const mockDeleteKey = jest.fn().mockImplementation((path) => store.delete(path))
 jest.mock('redis', () => {
   return {
     createClient: jest.fn().mockReturnValue({
-      on: jest.fn(() => ({ connect: jest.fn() })),
+      connect: jest.fn(),
       get: jest.fn((...params) => mockReadKey(...params)),
       set: jest.fn((...params) => mockWriteKey(...params)),
-      del: jest.fn((...params) => mockDeleteKey(...params))
+      del: jest.fn((...params) => mockDeleteKey(...params)),
+      scanIterator: jest.fn().mockImplementation(() => store.keys())
     })
   }
 })
 
-const mockLoggerFN = jest.fn()
-jest.mock('../src/logger/base.ts', () => ({
-  ConsoleLogger: jest.fn().mockImplementation(() => ({
-    info: jest.fn((...params) => mockLoggerFN(...params))
-  }))
-}))
-
-const memoryCache = new RedisCache({ url: 'mock-url' })
+const redisCache = new RedisCache({ url: 'mock-url' })
 const cacheKey = 'test'
+const cacheKey2 = 'test-2'
 
 describe('RedisCache', () => {
   afterEach(() => {
@@ -35,45 +30,50 @@ describe('RedisCache', () => {
     jest.restoreAllMocks()
   })
   it('should set and read the cache', async () => {
-    await memoryCache.set(cacheKey, mockPageData, mockHandlerMethodContext)
+    await redisCache.set(cacheKey, mockCacheEntry)
+    expect(redisCache.client.set).toHaveBeenCalledTimes(1)
+    expect(redisCache.client.set).toHaveBeenCalledWith(cacheKey, JSON.stringify(mockCacheEntry))
 
-    const result = await memoryCache.get(cacheKey)
-    expect(result?.value).toEqual(mockPageData)
+    const result = await redisCache.get(cacheKey)
+    expect(result).toEqual(mockCacheEntry)
+    expect(redisCache.client.get).toHaveBeenCalledTimes(1)
+    expect(redisCache.client.get).toHaveBeenCalledWith(cacheKey)
   })
 
-  it('should clear cache for given key', async () => {
-    await memoryCache.set(cacheKey, mockPageData, mockHandlerMethodContext)
-    const result = await memoryCache.get(cacheKey)
-    expect(result?.value).toEqual(mockPageData)
+  it('should delete cache value', async () => {
+    await redisCache.set(cacheKey, mockCacheEntry)
+    expect(redisCache.client.set).toHaveBeenCalledTimes(1)
+    expect(redisCache.client.set).toHaveBeenCalledWith(cacheKey, JSON.stringify(mockCacheEntry))
 
-    await memoryCache.set(cacheKey, null, mockHandlerMethodContext)
-    expect(await memoryCache.get(cacheKey)).toBeNull()
+    const result = await redisCache.get(cacheKey)
+    expect(result).toEqual(mockCacheEntry)
+    expect(redisCache.client.get).toHaveBeenCalledTimes(1)
+    expect(redisCache.client.get).toHaveBeenCalledWith(cacheKey)
+
+    await redisCache.delete(cacheKey)
+    const updatedResult = await redisCache.get(cacheKey)
+    expect(updatedResult).toBeNull()
+    expect(redisCache.client.del).toHaveBeenCalledTimes(1)
+    expect(redisCache.client.del).toHaveBeenCalledWith(cacheKey)
   })
 
-  it('should fail to read cache value', async () => {
-    mockReadKey.mockRejectedValueOnce('Error to read')
-    expect(await memoryCache.get(cacheKey)).toBeNull()
+  it('should delete all cache entries by key match', async () => {
+    await redisCache.set(cacheKey, mockCacheEntry)
+    await redisCache.set(cacheKey2, mockCacheEntry)
 
-    expect(mockLoggerFN).toHaveBeenCalledTimes(1)
-    expect(mockLoggerFN).toHaveBeenCalledWith(`Failed to get page data from redis for ${cacheKey}`, 'Error to read')
-  })
+    const result1 = await redisCache.get(cacheKey)
+    const result2 = await redisCache.get(cacheKey2)
+    expect(result1).toEqual(mockCacheEntry)
+    expect(result2).toEqual(mockCacheEntry)
 
-  it('should fail to write cache value', async () => {
-    mockWriteKey.mockRejectedValueOnce('Error to write')
-    await memoryCache.set(cacheKey, mockPageData, mockHandlerMethodContext)
+    await redisCache.deleteAllByKeyMatch(cacheKey)
+    expect(redisCache.client.del).toHaveBeenCalledTimes(2)
+    expect(redisCache.client.del).toHaveBeenNthCalledWith(1, cacheKey)
+    expect(redisCache.client.del).toHaveBeenNthCalledWith(2, cacheKey2)
 
-    expect(mockLoggerFN).toHaveBeenCalledTimes(1)
-    expect(mockLoggerFN).toHaveBeenCalledWith(`Failed to set page data to redis for ${cacheKey}`, 'Error to write')
-  })
-
-  it('should fail to clear cache value', async () => {
-    mockDeleteKey.mockRejectedValueOnce('Error to delete')
-    await memoryCache.set(cacheKey, null, mockHandlerMethodContext)
-
-    expect(mockLoggerFN).toHaveBeenCalledTimes(1)
-    expect(mockLoggerFN).toHaveBeenCalledWith(
-      `Failed to delete page data from redis for ${cacheKey}`,
-      'Error to delete'
-    )
+    const updatedResult1 = await redisCache.get(cacheKey)
+    const updatedResult2 = await redisCache.get(cacheKey2)
+    expect(updatedResult1).toBeNull()
+    expect(updatedResult2).toBeNull()
   })
 })

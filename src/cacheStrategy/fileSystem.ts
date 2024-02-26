@@ -1,49 +1,31 @@
 import fs from 'fs/promises'
 import path from 'path'
-import { type CacheStrategy, type IncrementalCacheEntry } from './base'
-import { ConsoleLogger, type BaseLogger } from '../logger'
+import type { CacheStrategy, CacheEntry, CacheContext } from '../types'
 
 export class FileSystemCache implements CacheStrategy {
-  logger: BaseLogger
+  async get(key: string, ctx: CacheContext): Promise<CacheEntry | null> {
+    const data = await fs.readFile(path.join(ctx.serverCacheDirPath, `${key}.json`), {
+      encoding: 'utf-8'
+    })
 
-  constructor(logger?: BaseLogger) {
-    this.logger = logger || new ConsoleLogger()
+    if (!data) return null
+
+    return JSON.parse(data)
   }
 
-  async get(...params: Parameters<CacheStrategy['get']>): Promise<IncrementalCacheEntry | null> {
-    const [cacheKey, ctx] = params
-    try {
-      const data = await fs.readFile(path.join(ctx.serverAppPath, `${cacheKey}.json`), { encoding: 'utf-8' })
-      return JSON.parse(data)
-    } catch (err) {
-      this.logger.info(`Failed to read cache for ${cacheKey}`, err)
-      return null
-    }
+  async set(key: string, data: CacheEntry, ctx: CacheContext): Promise<void> {
+    const filePath = path.join(ctx.serverCacheDirPath, `${key}.json`)
+    await fs.writeFile(filePath, JSON.stringify(data))
   }
 
-  async set(...params: Parameters<CacheStrategy['set']>) {
-    const [cacheKey, data, ctx] = params
-    const filePath = path.join(ctx.serverAppPath, `${cacheKey}.json`)
-    try {
-      if (data) {
-        await fs.writeFile(
-          filePath,
-          JSON.stringify({
-            value: data,
-            lastModified: Date.now(),
-            tags: ctx.tags,
-            revalidate: ctx.revalidate
-          })
-        )
-      } else {
-        try {
-          await fs.unlink(filePath)
-        } catch (err) {
-          this.logger.info(`Failed to delete cache for ${cacheKey}`, err)
-        }
-      }
-    } catch (err) {
-      this.logger.info(`Failed to set cache for ${cacheKey}`, err)
-    }
+  async delete(key: string, ctx: CacheContext) {
+    await fs.rm(path.join(ctx.serverCacheDirPath, `${key}.json`))
+  }
+
+  async deleteAllByKeyMatch(key: string, ctx: CacheContext) {
+    const cacheDir = await fs.readdir(path.join(ctx.serverCacheDirPath, 'dataCache'))
+    const filesToDelete = cacheDir.filter((fileName: string) => fileName.startsWith(key))
+
+    await Promise.allSettled(filesToDelete.map((file) => fs.rm(path.join(ctx.serverCacheDirPath, file))))
   }
 }
