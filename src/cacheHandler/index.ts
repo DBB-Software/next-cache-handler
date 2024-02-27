@@ -94,36 +94,57 @@ export class CacheHandler implements CacheHandlerType {
   }
 
   async get(cacheKey: string): Promise<CacheEntry | null> {
-    const data = await CacheHandler.cache.get(this.getPageCacheKey(cacheKey), {
-      serverCacheDirPath: this.serverCacheDirPath
-    })
+    try {
+      CacheHandler.logger.info(`Reading cache data for ${cacheKey}`)
 
-    const isStaleData = this.checkIsStaleCache(data)
+      const data = await CacheHandler.cache.get(this.getPageCacheKey(cacheKey), {
+        serverCacheDirPath: this.serverCacheDirPath
+      })
 
-    // Send page to revalidate
-    if (isStaleData || !data) return null
+      const isStaleData = this.checkIsStaleCache(data)
 
-    return data
+      // Send page to revalidate
+      if (isStaleData || !data) return null
+
+      return data
+    } catch (err) {
+      CacheHandler.logger.error(`Failed read cache for ${cacheKey}`, err)
+
+      return null
+    }
   }
 
   async set(cacheKey: string, data: IncrementalCacheValue | null, ctx: CacheHandlerContext): Promise<void> {
-    const key = this.getPageCacheKey(cacheKey)
-    const context = {
-      serverCacheDirPath: this.serverCacheDirPath
+    try {
+      CacheHandler.logger.info(`Writing cache for ${cacheKey}`)
+
+      const key = this.getPageCacheKey(cacheKey)
+      const context = {
+        serverCacheDirPath: this.serverCacheDirPath
+      }
+
+      if (!data) {
+        try {
+          CacheHandler.logger.info(`Deleting cache data for ${cacheKey}`)
+          await CacheHandler.cache.delete(key, context)
+        } catch (err) {
+          CacheHandler.logger.error(`Failed to delete cache data for ${cacheKey}`, err)
+        }
+      } else {
+        await CacheHandler.cache.set(
+          key,
+          {
+            value: data,
+            lastModified: Date.now(),
+            tags: ctx.tags,
+            revalidate: ctx.revalidate
+          },
+          context
+        )
+      }
+    } catch (err) {
+      CacheHandler.logger.error(`Failed to write cache for ${cacheKey}`, err)
     }
-    if (!data) {
-      return await CacheHandler.cache.delete(key, context)
-    }
-    return CacheHandler.cache.set(
-      key,
-      {
-        value: data,
-        lastModified: Date.now(),
-        tags: ctx.tags,
-        revalidate: ctx.revalidate
-      },
-      context
-    )
   }
 
   static addCookie(value: string) {
