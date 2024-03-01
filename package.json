@@ -1,11 +1,20 @@
 {
-  "name": "next-cache-handler",
+  "name": "@dbbs/next-cache-handler",
   "version": "1.0.0",
   "description": "Support to control cache behaviour for NextJS applications.",
   "main": "lib/index.js",
-  "files": ["lib"],
+  "files": [
+    "lib"
+  ],
   "types": "lib/index.d.ts",
-  "keywords": ["Next.js", "cache", "In-Memory Cache", "Redis", "File Cache", "NextJS"],
+  "keywords": [
+    "Next.js",
+    "cache",
+    "In-Memory Cache",
+    "Redis",
+    "File Cache",
+    "NextJS"
+  ],
   "scripts": {
     "prepublishOnly": "npm run lint && npm run test && npm run build",
     "test": "jest",
@@ -46,5 +55,9 @@
     "cookie": "0.6.0",
     "redis": "4.6.13",
     "ua-parser-js": "1.0.37"
+  },
+  "directories": {
+    "example": "examples",
+    "lib": "lib"
   }
 }
