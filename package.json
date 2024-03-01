@@ -5,8 +5,10 @@
   "main": "lib/index.js",
   "files": ["lib"],
   "types": "lib/index.d.ts",
+  "keywords": ["Next.js", "cache", "In-Memory Cache", "Redis", "File Cache", "NextJS"],
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "prepublishOnly": "npm run lint && npm run test && npm run build",
+    "test": "jest",
     "lint": "eslint \"src/**/*.ts*\"",
     "lint:fix": "eslint \"src/**/*.ts*\" --fix",
     "build": "tsc --build tsconfig.json"
@@ -16,7 +18,7 @@
     "url": "git+https://github.com/DBB-Software/next-cache-handler.git"
   },
   "author": "Roman Bobrovskiy",
-  "license": "ISC",
+  "license": "MIT",
   "bugs": {
     "url": "https://github.com/DBB-Software/next-cache-handler/issues"
   },
