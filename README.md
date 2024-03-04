@@ -61,11 +61,17 @@ export default nextConfig
 
 ## Cache Strategies
 Explore various caching strategies to find the best fit for your application's needs:
-- **MemoryCache**: Ideal for short-lived data in applications with limited cache size requirements.
+- **MemoryCache**: Ideal for short-lived data in applications with limited cache size requirements. By default limit of size is set to 512MB.
 ```
 import { CacheHandler, MemoryCache } from 'next-cache-handler'
 
 CacheHandler.addStrategy(new MemoryCache())
+```
+```
+import { CacheHandler, MemoryCache } from 'next-cache-handler'
+
+// extending size limitation to 1024MB.
+CacheHandler.addStrategy(new MemoryCache({ sizeLimit: 1024 }))
 ```
 - **FileSystemCache**: Suitable for persistent caching across application restarts.
 ```

@@ -2,16 +2,50 @@ import type { CacheEntry, CacheStrategy } from '../types'
 
 const mapCache = new Map()
 
+export interface MemoryCacheConstructorProps {
+  sizeLimit?: number
+}
+
 export class MemoryCache implements CacheStrategy {
+  #sizeLimit = 512
+  #totalSize = 0
+
+  constructor(props?: MemoryCacheConstructorProps) {
+    if (props?.sizeLimit) {
+      this.#sizeLimit = props.sizeLimit
+    }
+  }
+
+  #getItemSizeInMB(data: CacheEntry) {
+    return Buffer.byteLength(JSON.stringify(data)) / 1024 / 1024
+  }
+
+  #checkAndValidateSize(data: CacheEntry) {
+    const currentEntrySize = this.#getItemSizeInMB(data)
+    const finalSize = currentEntrySize + this.#totalSize
+    const shouldClearCache = finalSize > this.#sizeLimit
+
+    if (shouldClearCache) {
+      mapCache.clear()
+    }
+
+    this.#totalSize = shouldClearCache ? currentEntrySize : finalSize
+  }
+
   get(cacheKey: string) {
-    return mapCache.get(cacheKey) ?? null
+    const data = mapCache.get(cacheKey)
+    return data ? JSON.parse(data) : null
   }
 
   async set(key: string, data: CacheEntry) {
-    mapCache.set(key, data)
+    this.#checkAndValidateSize(data)
+    mapCache.set(key, JSON.stringify(data))
   }
 
   async delete(key: string) {
+    const currentItemSize = this.#getItemSizeInMB(mapCache.get(key))
+    this.#totalSize = this.#totalSize - currentItemSize
+
     mapCache.delete(key)
   }
 
@@ -20,7 +54,7 @@ export class MemoryCache implements CacheStrategy {
 
     allKeys.forEach((cacheKey) => {
       if (cacheKey.startsWith(key)) {
-        mapCache.delete(cacheKey)
+        this.delete(cacheKey)
       }
     })
   }
