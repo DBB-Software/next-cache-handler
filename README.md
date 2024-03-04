@@ -65,13 +65,13 @@ Explore various caching strategies to find the best fit for your application's n
 ```
 import { CacheHandler, MemoryCache } from 'next-cache-handler'
 
-CacheHandler.addStrategy(new MemoryCache())
+CacheHandler.setCacheStrategy(new MemoryCache())
 ```
 - **FileSystemCache**: Suitable for persistent caching across application restarts.
 ```
 import { CacheHandler, FileSystemCache } from 'next-cache-handler'
 
-CacheHandler.addStrategy(new FileSystemCache())
+CacheHandler.setCacheStrategy(new FileSystemCache())
 ```
 - **Redis**: Perfect for distributed applications requiring shared cache access.
 ```
@@ -83,7 +83,7 @@ const redisConnectionOpts = {
     ...
 }
 
-CacheHandler.addStrategy(new RedisCache(redisConnectionOpts))
+CacheHandler.setCacheStrategy(new RedisCache(redisConnectionOpts))
 ```
 
 
