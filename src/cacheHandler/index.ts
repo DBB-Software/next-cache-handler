@@ -18,6 +18,8 @@ export class CacheHandler implements CacheHandlerType {
 
   static enableDeviceSplit = false
 
+  static noCacheRoutes: string[] = []
+
   static cache: CacheStrategy
 
   static logger: BaseLogger
@@ -95,6 +97,10 @@ export class CacheHandler implements CacheHandlerType {
 
   async get(cacheKey: string): Promise<CacheEntry | null> {
     try {
+      if (CacheHandler.noCacheRoutes.includes(cacheKey)) {
+        return null
+      }
+
       CacheHandler.logger.info(`Reading cache data for ${cacheKey}`)
 
       const data = await CacheHandler.cache.get(this.getPageCacheKey(cacheKey), {
@@ -116,6 +122,8 @@ export class CacheHandler implements CacheHandlerType {
 
   async set(cacheKey: string, data: IncrementalCacheValue | null, ctx: CacheHandlerContext): Promise<void> {
     try {
+      if (CacheHandler.noCacheRoutes.includes(cacheKey)) return
+
       CacheHandler.logger.info(`Writing cache for ${cacheKey}`)
 
       const key = this.getPageCacheKey(cacheKey)
@@ -173,6 +181,12 @@ export class CacheHandler implements CacheHandlerType {
 
   static setLogger(logger: BaseLogger) {
     CacheHandler.logger = logger
+
+    return this
+  }
+
+  static addNoCacheRoute(route: string) {
+    CacheHandler.noCacheRoutes.push(route)
 
     return this
   }
