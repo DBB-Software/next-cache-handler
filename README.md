@@ -113,6 +113,9 @@ Applies given strategy to cache page data.
 CacheHandler.setCacheStrategy(new MemoryCache())
 ```
 
+### `addNoCacheRoute`
+Add route to ignore cache list. All routes added here would be excluded from caching and will always render again.
+
 ## Logging
 Leverage the built-in logger for monitoring cache operations or integrate your custom logger for advanced logging capabilities.
 ```

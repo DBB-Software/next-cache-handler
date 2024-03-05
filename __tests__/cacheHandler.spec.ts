@@ -31,6 +31,7 @@ describe('CacheHandler', () => {
     CacheHandler.cacheCookies = []
     CacheHandler.cacheQueries = []
     CacheHandler.enableDeviceSplit = false
+    CacheHandler.noCacheRoutes = []
     jest.clearAllMocks()
   })
 
@@ -221,5 +222,15 @@ describe('CacheHandler', () => {
 
     expect(mockLogger.error).toHaveBeenCalledTimes(1)
     expect(mockLogger.error).toHaveBeenCalledWith(`Failed to delete cache data for ${mockCacheKey}`, errorMessage)
+  })
+
+  it('should skip reading / writing data if route listed as no cache', async () => {
+    CacheHandler.setCacheStrategy(new FileSystemCache())
+    CacheHandler.addNoCacheRoute(mockCacheKey)
+    const cacheHandler = new CacheHandler(mockNextHandlerContext)
+
+    await cacheHandler.set(mockCacheKey, mockPageData, mockHandlerMethodContext)
+    const res = await cacheHandler.get(mockCacheKey)
+    expect(res).toBeNull()
   })
 })
