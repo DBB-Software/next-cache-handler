@@ -20,7 +20,7 @@ export class MemoryCache implements CacheStrategy {
     return Buffer.byteLength(JSON.stringify(data)) / 1024 / 1024
   }
 
-  #checkAndValidateSize(data: CacheEntry) {
+  #setAndValidateTotalSize(data: CacheEntry) {
     const currentEntrySize = this.#getItemSizeInMB(data)
     const finalSize = currentEntrySize + this.#totalSize
     const shouldClearCache = finalSize > this.#sizeLimit
@@ -38,7 +38,7 @@ export class MemoryCache implements CacheStrategy {
   }
 
   async set(key: string, data: CacheEntry) {
-    this.#checkAndValidateSize(data)
+    this.#setAndValidateTotalSize(data)
     mapCache.set(key, JSON.stringify(data))
   }
 
