@@ -1,11 +1,11 @@
-import { CacheHandler, FileSystemCache, BaseLogger } from '../src'
+import { Cache, FileSystemCache, BaseLogger } from '../src'
 import { mockNextHandlerContext, mockPageData, mockHandlerMethodContext, mockCacheStrategyContext } from './mocks'
 
 const mockGetData = jest.fn()
 const mockSetData = jest.fn()
 const mockDeleteData = jest.fn()
 
-jest.mock('../src/cacheStrategy/fileSystem', () => {
+jest.mock('../src/strategies/fileSystem', () => {
   return {
     FileSystemCache: jest.fn().mockImplementation(() => ({
       get: jest.fn((...params) => mockGetData(...params)),
@@ -28,10 +28,10 @@ describe('CacheHandler', () => {
   })
 
   afterEach(() => {
-    CacheHandler.cacheCookies = []
-    CacheHandler.cacheQueries = []
-    CacheHandler.enableDeviceSplit = false
-    CacheHandler.noCacheRoutes = []
+    Cache.cacheCookies = []
+    Cache.cacheQueries = []
+    Cache.enableDeviceSplit = false
+    Cache.noCacheRoutes = []
     jest.clearAllMocks()
   })
 
@@ -100,16 +100,16 @@ describe('CacheHandler', () => {
     'should handle cache $description',
     async ({ cacheCookie, cacheQuery, cacheStrategy, addDeviceSplit, overrideHeaders, expectedCacheSuffix }) => {
       if (cacheCookie) {
-        CacheHandler.addCookie(cacheCookie)
+        Cache.addCookie(cacheCookie)
       }
       if (cacheQuery) {
-        CacheHandler.addQuery(cacheQuery)
+        Cache.addQuery(cacheQuery)
       }
-      CacheHandler.enableDeviceSplit = addDeviceSplit
-      CacheHandler.setCacheStrategy(cacheStrategy)
-      CacheHandler.setLogger(mockLogger)
+      Cache.enableDeviceSplit = addDeviceSplit
+      Cache.setCacheStrategy(cacheStrategy)
+      Cache.setLogger(mockLogger)
 
-      const cacheHandler = new CacheHandler({
+      const cacheHandler = new Cache({
         ...mockNextHandlerContext,
         _requestHeaders: overrideHeaders
       })
@@ -136,9 +136,9 @@ describe('CacheHandler', () => {
   )
 
   it('should log when read data from cache', async () => {
-    CacheHandler.setCacheStrategy(new FileSystemCache())
-    CacheHandler.setLogger(mockLogger)
-    const cacheHandler = new CacheHandler(mockNextHandlerContext)
+    Cache.setCacheStrategy(new FileSystemCache())
+    Cache.setLogger(mockLogger)
+    const cacheHandler = new Cache(mockNextHandlerContext)
 
     await cacheHandler.get(mockCacheKey)
 
@@ -150,9 +150,9 @@ describe('CacheHandler', () => {
     const errorMessage = 'Error reading'
     mockGetData.mockRejectedValueOnce(errorMessage)
 
-    CacheHandler.setCacheStrategy(new FileSystemCache())
-    CacheHandler.setLogger(mockLogger)
-    const cacheHandler = new CacheHandler(mockNextHandlerContext)
+    Cache.setCacheStrategy(new FileSystemCache())
+    Cache.setLogger(mockLogger)
+    const cacheHandler = new Cache(mockNextHandlerContext)
 
     await cacheHandler.get(mockCacheKey)
 
@@ -164,9 +164,9 @@ describe('CacheHandler', () => {
   })
 
   it('should log when set data to cache', async () => {
-    CacheHandler.setCacheStrategy(new FileSystemCache())
-    CacheHandler.setLogger(mockLogger)
-    const cacheHandler = new CacheHandler(mockNextHandlerContext)
+    Cache.setCacheStrategy(new FileSystemCache())
+    Cache.setLogger(mockLogger)
+    const cacheHandler = new Cache(mockNextHandlerContext)
 
     await cacheHandler.set(mockCacheKey, mockPageData, mockCacheStrategyContext)
 
@@ -178,9 +178,9 @@ describe('CacheHandler', () => {
     const errorMessage = 'Error writing'
     mockSetData.mockRejectedValueOnce(errorMessage)
 
-    CacheHandler.setCacheStrategy(new FileSystemCache())
-    CacheHandler.setLogger(mockLogger)
-    const cacheHandler = new CacheHandler(mockNextHandlerContext)
+    Cache.setCacheStrategy(new FileSystemCache())
+    Cache.setLogger(mockLogger)
+    const cacheHandler = new Cache(mockNextHandlerContext)
 
     await cacheHandler.set(mockCacheKey, mockPageData, mockCacheStrategyContext)
 
@@ -192,9 +192,9 @@ describe('CacheHandler', () => {
   })
 
   it('should delete page cache if data was not passed', async () => {
-    CacheHandler.setCacheStrategy(new FileSystemCache())
-    CacheHandler.setLogger(mockLogger)
-    const cacheHandler = new CacheHandler(mockNextHandlerContext)
+    Cache.setCacheStrategy(new FileSystemCache())
+    Cache.setLogger(mockLogger)
+    const cacheHandler = new Cache(mockNextHandlerContext)
 
     await cacheHandler.set(mockCacheKey, null, mockCacheStrategyContext)
 
@@ -210,9 +210,9 @@ describe('CacheHandler', () => {
     const errorMessage = 'error deleting'
     mockDeleteData.mockRejectedValueOnce(errorMessage)
 
-    CacheHandler.setCacheStrategy(new FileSystemCache())
-    CacheHandler.setLogger(mockLogger)
-    const cacheHandler = new CacheHandler(mockNextHandlerContext)
+    Cache.setCacheStrategy(new FileSystemCache())
+    Cache.setLogger(mockLogger)
+    const cacheHandler = new Cache(mockNextHandlerContext)
 
     await cacheHandler.set(mockCacheKey, null, mockCacheStrategyContext)
 
@@ -225,9 +225,9 @@ describe('CacheHandler', () => {
   })
 
   it('should skip reading / writing data if route listed as no cache', async () => {
-    CacheHandler.setCacheStrategy(new FileSystemCache())
-    CacheHandler.addNoCacheRoute(mockCacheKey)
-    const cacheHandler = new CacheHandler(mockNextHandlerContext)
+    Cache.setCacheStrategy(new FileSystemCache())
+    Cache.addNoCacheRoute(mockCacheKey)
+    const cacheHandler = new Cache(mockNextHandlerContext)
 
     await cacheHandler.set(mockCacheKey, mockPageData, mockHandlerMethodContext)
     const res = await cacheHandler.get(mockCacheKey)

@@ -1,0 +1,9 @@
+{
+  "name": "next-cache-handler-types",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "files": ["src/*"],
+  "scripts": {
+    "clean": "npx rimraf .turbo node_modules dist bin coverage *.tsbuildinfo || exit 0"
+  }
+}

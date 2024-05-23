@@ -1,4 +1,4 @@
-import type { CacheEntry, CacheStrategy } from '../types'
+import type { CacheEntry, CacheStrategy } from 'next-cache-handler-types'
 
 const mapCache = new Map()
 
