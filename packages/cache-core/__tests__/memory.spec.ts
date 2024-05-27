@@ -1,4 +1,4 @@
-import { MemoryCache } from '../src/cacheStrategy/memory'
+import { MemoryCache } from '../src'
 import { mockCacheEntry } from './mocks'
 
 const memoryCache = new MemoryCache()

@@ -1,5 +1,17 @@
-import { RedisCache } from '../src/cacheStrategy/redis'
-import { mockCacheEntry } from './mocks'
+import { CacheEntry } from 'next-cache-handler-types'
+import { RedisCache } from '../src'
+
+export const mockCacheEntry: CacheEntry = {
+  value: {
+    pageData: {},
+    html: '',
+    kind: 'PAGE',
+    postponed: undefined,
+    headers: undefined,
+    status: 200
+  },
+  lastModified: 100000
+}
 
 const store = new Map()
 const mockReadKey = jest.fn().mockImplementation((path) => store.get(path))

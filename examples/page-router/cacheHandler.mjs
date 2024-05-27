@@ -1,5 +1,5 @@
-import { CacheHandler, FileSystemCache } from 'next-cache-handler'
+import { Cache, FileSystemCache } from '@dbbs/next-cache-handler-core'
 
-CacheHandler.addCookie('abtest').addQuery('abtest').setCacheStrategy(new FileSystemCache()).addDeviceSplit()
+Cache.addCookie('abtest').addQuery('abtest').setCacheStrategy(new FileSystemCache()).addDeviceSplit()
 
-export default CacheHandler
+export default Cache

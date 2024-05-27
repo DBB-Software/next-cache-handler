@@ -1,5 +1,5 @@
 import { createClient, RedisClientType, RedisClientOptions } from 'redis'
-import type { CacheEntry, CacheStrategy } from '../types'
+import type { CacheEntry, CacheStrategy } from 'next-cache-handler-types'
 
 export class RedisCache implements CacheStrategy {
   client: RedisClientType<any, any, any>

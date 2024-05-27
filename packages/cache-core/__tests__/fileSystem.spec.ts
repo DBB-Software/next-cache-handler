@@ -1,4 +1,4 @@
-import { FileSystemCache } from '../src/cacheStrategy/fileSystem'
+import { FileSystemCache } from '../src/'
 import { mockCacheEntry, mockCacheStrategyContext } from './mocks'
 
 const fileSystemCache = new FileSystemCache()

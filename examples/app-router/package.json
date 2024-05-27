@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "clean": "npx rimraf .turbo node_modules dist bin coverage *.tsbuildinfo || exit 0",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
@@ -13,7 +14,7 @@
     "react": "^18",
     "react-dom": "^18",
     "next": "14.1.0",
-    "next-cache-handler": "file:../../"
+    "@dbbs/next-cache-handler-core": "*"
   },
   "devDependencies": {
     "typescript": "^5",

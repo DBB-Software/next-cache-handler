@@ -1,0 +1,16 @@
+{
+  "name": "next-cache-handler-types",
+  "main": "lib/index.js",
+  "types": "lib/index.ts",
+  "files": ["src/*"],
+  "scripts": {
+    "clean": "npx rimraf .turbo node_modules dist bin coverage *.tsbuildinfo || exit 0",
+    "build": "tsc --build tsconfig.json"
+  },
+  "peerDependencies": {
+    "next": "^14.1.0"
+  },
+  "devDependencies": {
+    "tsconfig": "*"
+  }
+}

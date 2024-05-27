@@ -1,6 +1,6 @@
 import fs from 'fs/promises'
 import path from 'path'
-import type { CacheStrategy, CacheEntry, CacheContext } from '../types'
+import type { CacheStrategy, CacheEntry, CacheContext } from 'next-cache-handler-types'
 
 export class FileSystemCache implements CacheStrategy {
   async get(key: string, ctx: CacheContext): Promise<CacheEntry | null> {
