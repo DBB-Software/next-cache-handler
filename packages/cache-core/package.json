@@ -28,7 +28,7 @@
   "devDependencies": {
     "@types/cookie": "0.6.0",
     "@types/ua-parser-js": "0.7.39",
-    "next-cache-handler-types": "*",
+    "@dbbs/next-cache-handler-common": "*",
     "tsconfig": "*"
   },
   "directories": {

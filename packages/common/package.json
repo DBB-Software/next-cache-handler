@@ -1,8 +1,10 @@
 {
-  "name": "next-cache-handler-types",
+  "name": "@dbbs/next-cache-handler-common",
   "main": "lib/index.js",
-  "types": "lib/index.ts",
-  "files": ["src/*"],
+  "types": "lib/index.d.ts",
+  "files": [
+    "src/*"
+  ],
   "scripts": {
     "clean": "npx rimraf .turbo node_modules dist bin coverage *.tsbuildinfo || exit 0",
     "build": "tsc --build tsconfig.json"
@@ -12,5 +14,8 @@
   },
   "devDependencies": {
     "tsconfig": "*"
+  },
+  "dependencies": {
+    "@aws-sdk/credential-providers": "3.583.0"
   }
 }

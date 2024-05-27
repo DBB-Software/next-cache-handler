@@ -118,11 +118,12 @@ describe('CacheHandler', () => {
 
       await cacheHandler.get(pageKey)
       expect(cacheStrategy.get).toHaveBeenCalledTimes(1)
-      expect(cacheStrategy.get).toHaveBeenCalledWith(currentCacheKey, mockCacheStrategyContext)
+      expect(cacheStrategy.get).toHaveBeenCalledWith(pageKey, currentCacheKey, mockCacheStrategyContext)
 
       await cacheHandler.set(pageKey, mockPageData, mockHandlerMethodContext)
       expect(cacheStrategy.set).toHaveBeenCalledTimes(1)
       expect(cacheStrategy.set).toHaveBeenCalledWith(
+        pageKey,
         currentCacheKey,
         {
           value: mockPageData,
@@ -199,7 +200,7 @@ describe('CacheHandler', () => {
     await cacheHandler.set(mockCacheKey, null, mockCacheStrategyContext)
 
     expect(mockDeleteData).toHaveBeenCalledTimes(1)
-    expect(mockDeleteData).toHaveBeenCalledWith(mockCacheKey, mockCacheStrategyContext)
+    expect(mockDeleteData).toHaveBeenCalledWith(mockCacheKey, mockCacheKey, mockCacheStrategyContext)
 
     expect(mockLogger.info).toHaveBeenCalledTimes(2)
     expect(mockLogger.info).toHaveBeenNthCalledWith(1, `Writing cache for ${mockCacheKey}`)
