@@ -8,7 +8,7 @@ import type {
   CacheHandlerContext,
   CacheEntry,
   IncrementalCacheValue
-} from 'next-cache-handler-types'
+} from '@dbbs/next-cache-handler-common'
 import path from 'path'
 import { ConsoleLogger } from './logger'
 import { FileSystemCache } from './strategies/fileSystem'
@@ -32,6 +32,8 @@ export class Cache implements CacheHandler {
 
   queryCacheKey: string
 
+  pageCacheKey: string
+
   device?: string
 
   serverCacheDirPath: string
@@ -40,6 +42,7 @@ export class Cache implements CacheHandler {
     this.nextOptions = nextOptions
     this.cookieCacheKey = this.buildCookiesCacheKey()
     this.queryCacheKey = this.buildQueryCacheKey()
+    this.pageCacheKey = this.buildPageCacheKey()
     this.serverCacheDirPath = path.join(nextOptions.serverDistDir!, 'cacheData')
 
     if (Cache.enableDeviceSplit) {
@@ -85,8 +88,12 @@ export class Cache implements CacheHandler {
     return parser(this.nextOptions._requestHeaders['user-agent'] as string)?.device?.type ?? ''
   }
 
-  getPageCacheKey(key: string) {
-    return [key, this.device, this.cookieCacheKey, this.queryCacheKey].filter(Boolean).join('-')
+  buildPageCacheKey() {
+    return [this.device, this.cookieCacheKey, this.queryCacheKey].filter(Boolean).join('-')
+  }
+
+  getPageCacheKey(pageKey: string) {
+    return [pageKey.replace(/\//g, ''), this.pageCacheKey].filter(Boolean).join('-')
   }
 
   checkIsStaleCache(pageData: CacheEntry | null) {
@@ -97,15 +104,15 @@ export class Cache implements CacheHandler {
     return false
   }
 
-  async get(cacheKey: string): Promise<CacheEntry | null> {
+  async get(pageKey: string): Promise<CacheEntry | null> {
     try {
-      if (Cache.noCacheRoutes.includes(cacheKey)) {
+      if (Cache.noCacheRoutes.includes(pageKey)) {
         return null
       }
 
-      Cache.logger.info(`Reading cache data for ${cacheKey}`)
+      Cache.logger.info(`Reading cache data for ${pageKey}`)
 
-      const data = await Cache.cache.get(this.getPageCacheKey(cacheKey), {
+      const data = await Cache.cache.get(pageKey, this.getPageCacheKey(pageKey), {
         serverCacheDirPath: this.serverCacheDirPath
       })
 
@@ -116,33 +123,32 @@ export class Cache implements CacheHandler {
 
       return data
     } catch (err) {
-      Cache.logger.error(`Failed read cache for ${cacheKey}`, err)
+      Cache.logger.error(`Failed read cache for ${pageKey}`, err)
 
       return null
     }
   }
 
-  async set(cacheKey: string, data: IncrementalCacheValue | null, ctx: CacheHandlerContext): Promise<void> {
+  async set(pageKey: string, data: IncrementalCacheValue | null, ctx: CacheHandlerContext): Promise<void> {
     try {
-      if (Cache.noCacheRoutes.includes(cacheKey)) return
+      if (Cache.noCacheRoutes.includes(pageKey) || ['IMAGE', 'REDIRECT'].includes(data?.kind ?? '')) return
 
-      Cache.logger.info(`Writing cache for ${cacheKey}`)
-
-      const key = this.getPageCacheKey(cacheKey)
+      Cache.logger.info(`Writing cache for ${pageKey}`)
       const context = {
         serverCacheDirPath: this.serverCacheDirPath
       }
 
       if (!data) {
         try {
-          Cache.logger.info(`Deleting cache data for ${cacheKey}`)
-          await Cache.cache.delete(key, context)
+          Cache.logger.info(`Deleting cache data for ${pageKey}`)
+          await Cache.cache.delete(pageKey, this.getPageCacheKey(pageKey), context)
         } catch (err) {
-          Cache.logger.error(`Failed to delete cache data for ${cacheKey}`, err)
+          Cache.logger.error(`Failed to delete cache data for ${pageKey}`, err)
         }
       } else {
         await Cache.cache.set(
-          key,
+          pageKey,
+          this.getPageCacheKey(pageKey),
           {
             value: data,
             lastModified: Date.now(),
@@ -153,7 +159,7 @@ export class Cache implements CacheHandler {
         )
       }
     } catch (err) {
-      Cache.logger.error(`Failed to write cache for ${cacheKey}`, err)
+      Cache.logger.error(`Failed to write cache for ${pageKey}`, err)
     }
   }
 

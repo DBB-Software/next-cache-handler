@@ -8,45 +8,45 @@ const sizeOfMockEntry = Buffer.byteLength(JSON.stringify(mockCacheEntry)) / 1024
 
 describe('MemoryCache', () => {
   it('should set and read the cache', () => {
-    memoryCache.set(cacheKey, mockCacheEntry)
-    expect(memoryCache.get(cacheKey)).toEqual(mockCacheEntry)
+    memoryCache.set(cacheKey, cacheKey, mockCacheEntry)
+    expect(memoryCache.get(cacheKey, cacheKey)).toEqual(mockCacheEntry)
   })
 
   it('should delete cache entry', () => {
-    memoryCache.set(cacheKey, mockCacheEntry)
-    expect(memoryCache.get(cacheKey)).toEqual(mockCacheEntry)
+    memoryCache.set(cacheKey, cacheKey, mockCacheEntry)
+    expect(memoryCache.get(cacheKey, cacheKey)).toEqual(mockCacheEntry)
 
-    memoryCache.delete(cacheKey)
-    expect(memoryCache.get(cacheKey)).toBeFalsy()
+    memoryCache.delete(cacheKey, cacheKey)
+    expect(memoryCache.get(cacheKey, cacheKey)).toBeFalsy()
   })
 
   it('should delete entries by kay match', () => {
-    memoryCache.set(cacheKey, mockCacheEntry)
-    memoryCache.set(cacheKey2, mockCacheEntry)
+    memoryCache.set(cacheKey, cacheKey, mockCacheEntry)
+    memoryCache.set(cacheKey2, cacheKey2, mockCacheEntry)
 
-    expect(memoryCache.get(cacheKey)).toEqual(mockCacheEntry)
-    expect(memoryCache.get(cacheKey2)).toEqual(mockCacheEntry)
+    expect(memoryCache.get(cacheKey, cacheKey)).toEqual(mockCacheEntry)
+    expect(memoryCache.get(cacheKey2, cacheKey2)).toEqual(mockCacheEntry)
 
     memoryCache.deleteAllByKeyMatch(cacheKey)
 
-    expect(memoryCache.get(cacheKey)).toBeFalsy()
-    expect(memoryCache.get(cacheKey2)).toBeFalsy()
+    expect(memoryCache.get(cacheKey, cacheKey)).toBeFalsy()
+    expect(memoryCache.get(cacheKey2, cacheKey2)).toBeFalsy()
   })
 
   it('should clear data if reached memory limit', () => {
     const cache = new MemoryCache({ sizeLimit: sizeOfMockEntry * 2 })
     const overLimitedCacheKey = 'cache-with-overLimited-data'
 
-    cache.set(cacheKey, mockCacheEntry)
-    cache.set(cacheKey2, mockCacheEntry)
+    cache.set(cacheKey, cacheKey, mockCacheEntry)
+    cache.set(cacheKey2, cacheKey2, mockCacheEntry)
 
-    expect(memoryCache.get(cacheKey)).toEqual(mockCacheEntry)
-    expect(memoryCache.get(cacheKey2)).toEqual(mockCacheEntry)
+    expect(memoryCache.get(cacheKey, cacheKey)).toEqual(mockCacheEntry)
+    expect(memoryCache.get(cacheKey2, cacheKey2)).toEqual(mockCacheEntry)
 
-    cache.set(overLimitedCacheKey, mockCacheEntry)
+    cache.set(overLimitedCacheKey, overLimitedCacheKey, mockCacheEntry)
 
-    expect(memoryCache.get(cacheKey)).toBeNull()
-    expect(memoryCache.get(cacheKey2)).toBeNull()
-    expect(memoryCache.get(overLimitedCacheKey)).toEqual(mockCacheEntry)
+    expect(memoryCache.get(cacheKey, cacheKey)).toBeNull()
+    expect(memoryCache.get(cacheKey2, cacheKey2)).toBeNull()
+    expect(memoryCache.get(overLimitedCacheKey, overLimitedCacheKey)).toEqual(mockCacheEntry)
   })
 })

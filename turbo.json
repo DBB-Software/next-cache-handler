@@ -2,11 +2,16 @@
     "$schema": "https://turbo.build/schema.json",
     "pipeline": {
       "build": {
-        "outputs": ["lib/**"]
+        "outputs": ["lib/**"],
+        "cache": false
       },
-      "test": {},
+      "test": {
+        "cache": false
+      },
       "lint": {},
       "lint:fix": {},
-      "clean": {}
+      "clean": {
+        "cache": false
+      }
     }
 }
