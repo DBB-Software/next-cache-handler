@@ -24,7 +24,7 @@
     "test": "jest",
     "lint": "eslint \"src/**/*.ts*\"",
     "lint:fix": "eslint \"src/**/*.ts*\" --fix",
-    "build": "tsc --build tsconfig.json"
+    "build": "webpack && tsc --declaration"
   },
   "repository": {
     "type": "git",
