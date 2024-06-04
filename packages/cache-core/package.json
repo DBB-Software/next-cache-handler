@@ -19,12 +19,12 @@
     "Cache handler"
   ],
   "scripts": {
-    "clean": "npx rimraf .turbo node_modules dist bin coverage *.tsbuildinfo || exit 0",
+    "clean": "npx rimraf .turbo node_modules lib bin coverage *.tsbuildinfo || exit 0",
     "prepublishOnly": "npm run lint && npm run test && npm run build",
     "test": "jest",
     "lint": "eslint \"src/**/*.ts*\"",
     "lint:fix": "eslint \"src/**/*.ts*\" --fix",
-    "build": "webpack && tsc --declaration"
+    "build": "rm -rf lib && rollup -c --bundleConfigAsCjs"
   },
   "repository": {
     "type": "git",
