@@ -1,6 +1,6 @@
 {
   "name": "@dbbs/next-cache-handler-core",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Support to control cache behaviour for NextJS applications.",
   "main": "lib/index.js",
   "files": [
