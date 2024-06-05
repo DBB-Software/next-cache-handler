@@ -59,7 +59,12 @@
     "lib": "lib"
   },
   "workspaces": [
-    "packages/*",
-    "examples/*"
+    "packages/cache-core",
+    "packages/common",
+    "packages/redis-cache",
+    "packages/s3-cache",
+    "packages/tsconfig",
+    "examples/app-router",
+    "examples/page-router"
   ]
 }

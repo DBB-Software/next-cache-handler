@@ -1,6 +1,6 @@
 {
   "name": "@dbbs/next-cache-handler-s3",
-  "version": "1.0.1",
+  "version": "1.0.7",
   "description": "",
   "main": "lib/index.js",
   "files": [
@@ -26,12 +26,11 @@
   },
   "homepage": "https://github.com/DBB-Software/next-cache-handler#readme",
   "dependencies": {
-    "@aws-sdk/client-s3": "3.583.0",
-    "@dbbs/next-cache-handler-common": "*"
+    "@aws-sdk/client-s3": "3.583.0"
   },
   "devDependencies": {
-    "rollup-plugin-node-externals": "^7.1.2",
-    "tsconfig": "*"
+    "tsconfig": "*",
+    "@dbbs/next-cache-handler-common": "*"
   },
   "directories": {
     "lib": "lib"
