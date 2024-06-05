@@ -16,12 +16,16 @@ export class S3Cache implements CacheStrategy {
     this.bucketName = bucketName
   }
 
+  removeSlashFromStart(value: string) {
+    return value.replace('/', '')
+  }
+
   async get(pageKey: string, cacheKey: string): Promise<CacheEntry | null> {
     if (!this.client) return null
 
     const pageData = await this.client.getObject({
       Bucket: this.bucketName,
-      Key: `${pageKey}/${cacheKey}.json`
+      Key: `${this.removeSlashFromStart(pageKey)}/${cacheKey}.json`
     })
 
     if (!pageData.Body) return null
@@ -33,14 +37,14 @@ export class S3Cache implements CacheStrategy {
     if (data.value?.kind === 'PAGE') {
       await this.client.putObject({
         Bucket: this.bucketName,
-        Key: `${pageKey}/${cacheKey}.html`,
+        Key: `${this.removeSlashFromStart(pageKey)}/${cacheKey}.html`,
         Body: data.value.html
       })
     }
 
     await this.client.putObject({
       Bucket: this.bucketName,
-      Key: `${pageKey}/${cacheKey}.json`,
+      Key: `${this.removeSlashFromStart(pageKey)}/${cacheKey}.json`,
       Body: JSON.stringify(data)
     })
   }
@@ -48,7 +52,7 @@ export class S3Cache implements CacheStrategy {
   async delete(pageKey: string, cacheKey: string): Promise<void> {
     await this.client.deleteObject({
       Bucket: this.bucketName,
-      Key: `${pageKey}/${cacheKey}.json`
+      Key: `${this.removeSlashFromStart(pageKey)}/${cacheKey}.json`
     })
     // TODO extend cache context and add value type to drop s3 html page
   }
@@ -56,7 +60,7 @@ export class S3Cache implements CacheStrategy {
   async deleteAllByKeyMatch(pageKey: string): Promise<void> {
     await this.client.deleteObject({
       Bucket: this.bucketName,
-      Key: pageKey
+      Key: `${this.removeSlashFromStart(pageKey)}/`
     })
   }
 }
