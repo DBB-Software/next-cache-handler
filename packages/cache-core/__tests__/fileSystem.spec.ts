@@ -17,6 +17,7 @@ const mockReaddir = jest
   .mockImplementation(() =>
     [...store.keys()].map((k) => k.replace(`${mockCacheStrategyContext.serverCacheDirPath}/`, ''))
   )
+const mockExistsSync = jest.fn().mockImplementation(() => true)
 
 jest.mock('node:fs/promises', () => {
   return {
@@ -24,6 +25,11 @@ jest.mock('node:fs/promises', () => {
     writeFile: jest.fn((...params) => mockWriteFile(...params)),
     rm: jest.fn((...params) => mockRm(...params)),
     readdir: jest.fn((...params) => mockReaddir(...params))
+  }
+})
+jest.mock('node:fs', () => {
+  return {
+    existsSync: jest.fn((...params) => mockExistsSync(...params))
   }
 })
 
@@ -42,7 +48,7 @@ describe('FileSystemCache', () => {
     const result = await fileSystemCache.get(cacheKey, cacheKey, mockCacheStrategyContext)
     expect(result).toEqual(mockCacheEntry)
     expect(mockReadFile).toHaveBeenCalledTimes(1)
-    expect(mockReadFile).toHaveBeenCalledWith(cacheFilePath, { encoding: 'utf-8' })
+    expect(mockReadFile).toHaveBeenCalledWith(cacheFilePath, 'utf-8')
   })
 
   it('should delete cache value', async () => {
@@ -53,7 +59,7 @@ describe('FileSystemCache', () => {
     const result = await fileSystemCache.get(cacheKey, cacheKey, mockCacheStrategyContext)
     expect(result).toEqual(mockCacheEntry)
     expect(mockReadFile).toHaveBeenCalledTimes(1)
-    expect(mockReadFile).toHaveBeenCalledWith(cacheFilePath, { encoding: 'utf-8' })
+    expect(mockReadFile).toHaveBeenCalledWith(cacheFilePath, 'utf-8')
 
     await fileSystemCache.delete(cacheKey, cacheKey, mockCacheStrategyContext)
     const updatedResult = await fileSystemCache.get(cacheKey, cacheKey, mockCacheStrategyContext)
