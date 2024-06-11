@@ -18,7 +18,7 @@ const mockReaddir = jest
     [...store.keys()].map((k) => k.replace(`${mockCacheStrategyContext.serverCacheDirPath}/`, ''))
   )
 
-jest.mock('fs/promises', () => {
+jest.mock('node:fs/promises', () => {
   return {
     readFile: jest.fn((...params) => mockReadFile(...params)),
     writeFile: jest.fn((...params) => mockWriteFile(...params)),

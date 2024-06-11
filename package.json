@@ -34,6 +34,10 @@
   },
   "homepage": "https://github.com/DBB-Software/next-cache-handler#readme",
   "devDependencies": {
+    "@rollup/plugin-commonjs": "25.0.8",
+    "@rollup/plugin-json": "6.1.0",
+    "@rollup/plugin-node-resolve": "15.2.3",
+    "@rollup/plugin-typescript": "11.1.6",
     "@types/jest": "29.5.12",
     "@types/node": "20.11.20",
     "@typescript-eslint/eslint-plugin": "7.1.0",
@@ -45,19 +49,22 @@
     "jest": "29.7.0",
     "prettier": "3.2.5",
     "rimraf": "5.0.7",
+    "rollup": "^4.18.0",
     "ts-jest": "29.1.2",
     "turbo": "1.13.3",
     "typescript": "5.3.3"
-  },
-  "peerDependencies": {
-    "next": "^14.1.0"
   },
   "directories": {
     "example": "examples",
     "lib": "lib"
   },
   "workspaces": [
-    "packages/*",
-    "examples/*"
+    "packages/cache-core",
+    "packages/common",
+    "packages/redis-cache",
+    "packages/s3-cache",
+    "packages/tsconfig",
+    "examples/app-router",
+    "examples/page-router"
   ]
 }

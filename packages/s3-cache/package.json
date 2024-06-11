@@ -1,6 +1,6 @@
 {
   "name": "@dbbs/next-cache-handler-s3",
-  "version": "1.0.0",
+  "version": "1.0.8",
   "description": "",
   "main": "lib/index.js",
   "files": [
@@ -8,12 +8,12 @@
   ],
   "types": "lib/index.d.ts",
   "scripts": {
-    "clean": "npx rimraf .turbo node_modules dist bin coverage *.tsbuildinfo || exit 0",
+    "clean": "npx rimraf .turbo node_modules lib bin coverage *.tsbuildinfo || exit 0",
     "prepublishOnly": "npm run lint && npm run test && npm run build",
     "test": "jest",
     "lint": "eslint \"src/**/*.ts*\"",
     "lint:fix": "eslint \"src/**/*.ts*\" --fix",
-    "build": "tsc --build tsconfig.json"
+    "build": "rm -rf lib && rollup -c --bundleConfigAsCjs"
   },
   "repository": {
     "type": "git",
@@ -29,10 +29,13 @@
     "@aws-sdk/client-s3": "3.583.0"
   },
   "devDependencies": {
-    "@dbbs/next-cache-handler-common": "*",
-    "tsconfig": "*"
+    "tsconfig": "*",
+    "@dbbs/next-cache-handler-common": "*"
   },
   "directories": {
     "lib": "lib"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

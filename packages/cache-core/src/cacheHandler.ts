@@ -93,7 +93,7 @@ export class Cache implements CacheHandler {
   }
 
   getPageCacheKey(pageKey: string) {
-    return [pageKey.replace(/\//g, ''), this.pageCacheKey].filter(Boolean).join('-')
+    return [pageKey.replace('/', ''), this.pageCacheKey].filter(Boolean).join('-')
   }
 
   checkIsStaleCache(pageData: CacheEntry | null) {
