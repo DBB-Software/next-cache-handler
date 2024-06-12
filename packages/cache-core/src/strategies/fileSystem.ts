@@ -7,9 +7,7 @@ export class FileSystemCache implements CacheStrategy {
   async get(pageKey: string, cacheKey: string, ctx: CacheContext): Promise<CacheEntry | null> {
     const pathToCacheFile = path.join(ctx.serverCacheDirPath, pageKey, `${cacheKey}.json`)
 
-    if (!existsSync(pathToCacheFile)) {
-      throw `no cache file ${pathToCacheFile} yet`
-    }
+    if (!existsSync(pathToCacheFile)) return null
 
     const data = await fs.readFile(pathToCacheFile, 'utf-8')
 
