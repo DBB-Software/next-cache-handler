@@ -143,8 +143,9 @@ describe('CacheHandler', () => {
 
     await cacheHandler.get(mockCacheKey)
 
-    expect(mockLogger.info).toHaveBeenCalledTimes(1)
+    expect(mockLogger.info).toHaveBeenCalledTimes(2)
     expect(mockLogger.info).toHaveBeenCalledWith(`Reading cache data for ${mockCacheKey}`)
+    expect(mockLogger.info).toHaveBeenCalledWith(`No actual cache found for ${mockCacheKey}`)
   })
 
   it('should log when failed to read data from cache', async () => {

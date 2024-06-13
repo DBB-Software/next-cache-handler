@@ -96,7 +96,7 @@ export class Cache implements CacheHandler {
     return [pageKey.replace('/', ''), this.pageCacheKey].filter(Boolean).join('-')
   }
 
-  checkIsStaleCache(pageData: CacheEntry | null) {
+  checkIsStaleCache(pageData: CacheEntry) {
     if (pageData?.revalidate) {
       return Date.now() > pageData.lastModified + pageData.revalidate * 1000
     }
@@ -116,10 +116,11 @@ export class Cache implements CacheHandler {
         serverCacheDirPath: this.serverCacheDirPath
       })
 
-      const isStaleData = this.checkIsStaleCache(data)
-
       // Send page to revalidate
-      if (isStaleData || !data) return null
+      if (!data || this.checkIsStaleCache(data)) {
+        Cache.logger.info(`No actual cache found for ${pageKey}`)
+        return null
+      }
 
       return data
     } catch (err) {
