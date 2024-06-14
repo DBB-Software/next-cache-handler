@@ -31,7 +31,7 @@ describe('CacheHandler', () => {
     Cache.cacheCookies = []
     Cache.cacheQueries = []
     Cache.enableDeviceSplit = false
-    Cache.noCacheRoutes = []
+    Cache.noCacheMatchers = []
     jest.clearAllMocks()
   })
 
@@ -228,11 +228,12 @@ describe('CacheHandler', () => {
 
   it('should skip reading / writing data if route listed as no cache', async () => {
     Cache.setCacheStrategy(new FileSystemCache())
-    Cache.addNoCacheRoute(mockCacheKey)
+    Cache.addNoCacheMatchers(mockCacheKey)
     const cacheHandler = new Cache(mockNextHandlerContext)
 
     await cacheHandler.set(mockCacheKey, mockPageData, mockHandlerMethodContext)
     const res = await cacheHandler.get(mockCacheKey)
+    expect(mockLogger.info).toHaveBeenCalledTimes(0)
     expect(res).toBeNull()
   })
 })
