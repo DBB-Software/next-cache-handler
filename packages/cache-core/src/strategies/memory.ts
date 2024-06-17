@@ -1,3 +1,4 @@
+import { NEXT_CACHE_IMPLICIT_TAG_ID } from 'next/dist/lib/constants'
 import type { CacheEntry, CacheStrategy } from '@dbbs/next-cache-handler-common'
 
 const mapCache = new Map()
@@ -40,6 +41,21 @@ export class MemoryCache implements CacheStrategy {
   async set(_pageKey: string, cacheKey: string, data: CacheEntry) {
     this.#setAndValidateTotalSize(data)
     mapCache.set(cacheKey, JSON.stringify(data))
+  }
+
+  async revalidateTag(tag: string): Promise<void> {
+    for (const cacheKey of [...mapCache.keys()]) {
+      if (tag.startsWith(NEXT_CACHE_IMPLICIT_TAG_ID) && tag === `${NEXT_CACHE_IMPLICIT_TAG_ID}${cacheKey}`) {
+        await this.delete('', cacheKey)
+        return
+      }
+
+      const pageData: CacheEntry = JSON.parse(mapCache.get(cacheKey))
+      if (pageData?.tags?.includes(tag)) {
+        await this.delete('', cacheKey)
+        return
+      }
+    }
   }
 
   async delete(_pageKey: string, cacheKey: string) {

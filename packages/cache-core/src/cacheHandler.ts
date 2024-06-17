@@ -2,6 +2,7 @@ import path from 'path'
 import cookieParser from 'cookie'
 import parser from 'ua-parser-js'
 import { pathToRegexp, Path } from 'path-to-regexp'
+import { NEXT_CACHE_IMPLICIT_TAG_ID } from 'next/dist/lib/constants'
 import type {
   CacheHandler,
   BaseLogger,
@@ -166,6 +167,22 @@ export class Cache implements CacheHandler {
       }
     } catch (err) {
       Cache.logger.error(`Failed to write cache for ${pageKey}`, err)
+    }
+  }
+
+  async revalidateTag(tag: string) {
+    const mode = tag.startsWith(NEXT_CACHE_IMPLICIT_TAG_ID)
+      ? `path ${tag.slice(NEXT_CACHE_IMPLICIT_TAG_ID.length)}`
+      : `tag ${tag}`
+    try {
+      Cache.logger.info(`Revalidate by ${mode}`)
+      const context = {
+        serverCacheDirPath: this.serverCacheDirPath
+      }
+      return Cache.cache.revalidateTag(tag, context)
+    } catch (err) {
+      Cache.logger.error(`Failed revalidate by ${mode}`, err)
+      return
     }
   }
 

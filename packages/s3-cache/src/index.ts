@@ -1,5 +1,6 @@
 import { S3 } from '@aws-sdk/client-s3'
 import { getAWSCredentials, type CacheEntry, type CacheStrategy } from '@dbbs/next-cache-handler-common'
+import { NEXT_CACHE_IMPLICIT_TAG_ID } from 'next/dist/lib/constants'
 
 export class S3Cache implements CacheStrategy {
   public readonly client: S3
@@ -47,6 +48,23 @@ export class S3Cache implements CacheStrategy {
       Key: `${this.removeSlashFromStart(pageKey)}/${cacheKey}.json`,
       Body: JSON.stringify(data)
     })
+  }
+
+  async revalidateTag(tag: string): Promise<void> {
+    const allKeys: string[] = []
+
+    for (const cacheKey of allKeys) {
+      if (tag.startsWith(NEXT_CACHE_IMPLICIT_TAG_ID) && tag === `${NEXT_CACHE_IMPLICIT_TAG_ID}${cacheKey}`) {
+        await this.delete('', cacheKey)
+        return
+      }
+
+      const pageData: CacheEntry | null = await this.get('', cacheKey)
+      if (pageData?.tags?.includes(tag)) {
+        await this.delete('', cacheKey)
+        return
+      }
+    }
   }
 
   async delete(pageKey: string, cacheKey: string): Promise<void> {

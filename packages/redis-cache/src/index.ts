@@ -1,5 +1,6 @@
 import { createClient, RedisClientType, RedisClientOptions } from 'redis'
 import type { CacheEntry, CacheStrategy } from '@dbbs/next-cache-handler-common'
+import { NEXT_CACHE_IMPLICIT_TAG_ID } from 'next/dist/lib/constants'
 
 export class RedisCache implements CacheStrategy {
   client: RedisClientType<any, any, any>
@@ -17,6 +18,23 @@ export class RedisCache implements CacheStrategy {
 
   async set(_pageKey: string, cacheKey: string, data: CacheEntry): Promise<void> {
     await this.client.set(cacheKey, JSON.stringify(data))
+  }
+
+  async revalidateTag(tag: string): Promise<void> {
+    const allKeys = await this.client.keys('*')
+
+    for (const cacheKey of Object.keys(allKeys)) {
+      if (tag.startsWith(NEXT_CACHE_IMPLICIT_TAG_ID) && tag === `${NEXT_CACHE_IMPLICIT_TAG_ID}${cacheKey}`) {
+        await this.delete('', cacheKey)
+        return
+      }
+
+      const pageData: CacheEntry | null = await this.get('', cacheKey)
+      if (pageData?.tags?.includes(tag)) {
+        await this.delete('', cacheKey)
+        return
+      }
+    }
   }
 
   async delete(_pageKey: string, cacheKey: string): Promise<void> {
