@@ -23,12 +23,17 @@ export class S3Cache implements CacheStrategy {
   async get(pageKey: string, cacheKey: string): Promise<CacheEntry | null> {
     if (!this.client) return null
 
-    const pageData = await this.client.getObject({
-      Bucket: this.bucketName,
-      Key: `${this.removeSlashFromStart(pageKey)}/${cacheKey}.json`
-    })
+    const pageData = await this.client
+      .getObject({
+        Bucket: this.bucketName,
+        Key: `${this.removeSlashFromStart(pageKey)}/${cacheKey}.json`
+      })
+      .catch((error) => {
+        if (error.name === 'NotFound' || error.name === 'NoSuchKey') return null
+        throw error
+      })
 
-    if (!pageData.Body) return null
+    if (!pageData?.Body) return null
 
     return JSON.parse(await pageData.Body.transformToString('utf-8'))
   }
