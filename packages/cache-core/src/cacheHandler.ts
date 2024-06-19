@@ -176,10 +176,10 @@ export class Cache implements CacheHandler {
       : `tag ${tag}`
     try {
       Cache.logger.info(`Revalidate by ${mode}`)
-      const context = {
+      await Cache.cache.revalidateTag(tag, {
         serverCacheDirPath: this.serverCacheDirPath
-      }
-      return Cache.cache.revalidateTag(tag, context)
+      })
+      return
     } catch (err) {
       Cache.logger.error(`Failed revalidate by ${mode}`, err)
       return
