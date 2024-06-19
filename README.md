@@ -126,11 +126,16 @@ Applies given strategy to cache page data.
 Cache.setCacheStrategy(new MemoryCache())
 ```
 
-### `addNoCacheRoute`
+### `addNoCacheMatchers`
+This allows you to exclude pages for which caching should be disabled. 
+You can match one or more paths using array syntax. The matcher config allows full regex. 
 Add route to ignore cache list. All routes added here would be excluded from caching and will always render again.
 ```
-Cache.addNoCacheRoute('/home')
+Cache.addNoCacheMatchers('/home')
+Cache.addNoCacheMatchers(['/home','/about'])
+Cache.addNoCacheMatchers('/catalog/:page')
 ```
+Read more details on [path-to-regexp](https://github.com/pillarjs/path-to-regexp#path-to-regexp-1) documentation.
 
 ## Logging
 Leverage the built-in logger for monitoring cache operations or integrate your custom logger for advanced logging capabilities.

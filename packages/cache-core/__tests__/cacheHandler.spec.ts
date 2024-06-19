@@ -22,6 +22,26 @@ const mockLogger: BaseLogger = {
 
 const mockCacheKey = 'test'
 
+const RegExpMatcher = /^(\/api\/.*|\/_next\/static\/.*|\/_next\/image\/.*|\/favicon\.ico)$/
+const NonMatchedPaths = [
+  '/api/users',
+  '/api/v1/login',
+  '/_next/static/css/main.css',
+  '/_next/static/js/bundle.js',
+  '/_next/image/file.png',
+  '/_next/image/optimized/photo.jpg',
+  '/favicon.ico'
+]
+const matchedPaths = [
+  '/home',
+  '/user/profile',
+  '/static/_next/css/main.css',
+  '/image/_next/file.png',
+  '/favicon.png',
+  '/next/static/js/bundle.js',
+  '/image/file.png'
+]
+
 describe('CacheHandler', () => {
   beforeAll(() => {
     jest.useFakeTimers().setSystemTime(Date.now())
@@ -31,7 +51,7 @@ describe('CacheHandler', () => {
     Cache.cacheCookies = []
     Cache.cacheQueries = []
     Cache.enableDeviceSplit = false
-    Cache.noCacheRoutes = []
+    Cache.noCacheMatchers = []
     jest.clearAllMocks()
   })
 
@@ -226,13 +246,80 @@ describe('CacheHandler', () => {
     expect(mockLogger.error).toHaveBeenCalledWith(`Failed to delete cache data for ${mockCacheKey}`, errorMessage)
   })
 
-  it('should skip reading / writing data if route listed as no cache', async () => {
+  it('should skip reading / writing data if route listed as no cache using value', async () => {
     Cache.setCacheStrategy(new FileSystemCache())
-    Cache.addNoCacheRoute(mockCacheKey)
+    Cache.addNoCacheMatchers(mockCacheKey)
     const cacheHandler = new Cache(mockNextHandlerContext)
 
     await cacheHandler.set(mockCacheKey, mockPageData, mockHandlerMethodContext)
     const res = await cacheHandler.get(mockCacheKey)
+    expect(mockLogger.info).toHaveBeenCalledTimes(0)
     expect(res).toBeNull()
+  })
+
+  it('should skip reading / writing data if route listed as no cache using regular expressions)', async () => {
+    Cache.setCacheStrategy(new FileSystemCache())
+    Cache.setLogger(mockLogger)
+
+    Cache.addNoCacheMatchers(RegExpMatcher)
+    const cacheHandler = new Cache(mockNextHandlerContext)
+
+    for (const nonMatchedPath of NonMatchedPaths) {
+      await cacheHandler.set(nonMatchedPath, mockPageData, mockHandlerMethodContext)
+      await cacheHandler.get(nonMatchedPath)
+    }
+
+    expect(mockLogger.info).toHaveBeenCalledTimes(0)
+
+    for (const matchedPath of matchedPaths) {
+      await cacheHandler.set(matchedPath, mockPageData, mockHandlerMethodContext)
+      await cacheHandler.get(matchedPath)
+    }
+
+    expect(mockLogger.info).toHaveBeenCalledTimes(21)
+  })
+
+  it('should skip reading / writing data if route listed as no cache using regular expressions and additional value)', async () => {
+    Cache.setCacheStrategy(new FileSystemCache())
+    Cache.setLogger(mockLogger)
+
+    Cache.addNoCacheMatchers([RegExpMatcher, '/home'])
+    const cacheHandler = new Cache(mockNextHandlerContext)
+
+    for (const nonMatchedPath of NonMatchedPaths) {
+      await cacheHandler.set(nonMatchedPath, mockPageData, mockHandlerMethodContext)
+      await cacheHandler.get(nonMatchedPath)
+    }
+
+    expect(mockLogger.info).toHaveBeenCalledTimes(0)
+
+    for (const matchedPath of matchedPaths) {
+      await cacheHandler.set(matchedPath, mockPageData, mockHandlerMethodContext)
+      await cacheHandler.get(matchedPath)
+    }
+
+    expect(mockLogger.info).toHaveBeenCalledTimes(18)
+  })
+
+  it('should skip reading / writing data if route listed as no cache using regular expressions and additional matcher)', async () => {
+    Cache.setCacheStrategy(new FileSystemCache())
+    Cache.setLogger(mockLogger)
+
+    Cache.addNoCacheMatchers([RegExpMatcher, '/:path'])
+    const cacheHandler = new Cache(mockNextHandlerContext)
+
+    for (const nonMatchedPath of NonMatchedPaths) {
+      await cacheHandler.set(nonMatchedPath, mockPageData, mockHandlerMethodContext)
+      await cacheHandler.get(nonMatchedPath)
+    }
+
+    expect(mockLogger.info).toHaveBeenCalledTimes(0)
+
+    for (const matchedPath of matchedPaths) {
+      await cacheHandler.set(matchedPath, mockPageData, mockHandlerMethodContext)
+      await cacheHandler.get(matchedPath)
+    }
+
+    expect(mockLogger.info).toHaveBeenCalledTimes(15)
   })
 })

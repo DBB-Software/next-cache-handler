@@ -1,5 +1,7 @@
+import path from 'path'
 import cookieParser from 'cookie'
 import parser from 'ua-parser-js'
+import { pathToRegexp, Path } from 'path-to-regexp'
 import type {
   CacheHandler,
   BaseLogger,
@@ -9,7 +11,6 @@ import type {
   CacheEntry,
   IncrementalCacheValue
 } from '@dbbs/next-cache-handler-common'
-import path from 'path'
 import { ConsoleLogger } from './logger'
 import { FileSystemCache } from './strategies/fileSystem'
 
@@ -20,7 +21,7 @@ export class Cache implements CacheHandler {
 
   static enableDeviceSplit = false
 
-  static noCacheRoutes: string[] = []
+  static noCacheMatchers: RegExp[] = []
 
   static cache: CacheStrategy = new FileSystemCache()
 
@@ -104,9 +105,13 @@ export class Cache implements CacheHandler {
     return false
   }
 
+  checkIsPathToCache(pageKey: string) {
+    return !Cache.noCacheMatchers.some((matcher) => matcher.exec(pageKey))
+  }
+
   async get(pageKey: string): Promise<CacheEntry | null> {
     try {
-      if (Cache.noCacheRoutes.includes(pageKey)) {
+      if (!this.checkIsPathToCache(pageKey)) {
         return null
       }
 
@@ -132,7 +137,7 @@ export class Cache implements CacheHandler {
 
   async set(pageKey: string, data: IncrementalCacheValue | null, ctx: CacheHandlerContext): Promise<void> {
     try {
-      if (Cache.noCacheRoutes.includes(pageKey) || ['IMAGE', 'REDIRECT'].includes(data?.kind ?? '')) return
+      if (!this.checkIsPathToCache(pageKey) || ['IMAGE', 'REDIRECT'].includes(data?.kind ?? '')) return
 
       Cache.logger.info(`Writing cache for ${pageKey}`)
       const context = {
@@ -194,8 +199,11 @@ export class Cache implements CacheHandler {
     return this
   }
 
-  static addNoCacheRoute(route: string) {
-    Cache.noCacheRoutes.push(route)
+  static addNoCacheMatchers(matchers: Path | Path[]) {
+    const regexps = Array.isArray(matchers)
+      ? matchers.map((matcher) => pathToRegexp(matcher))
+      : [pathToRegexp(matchers)]
+    Cache.noCacheMatchers.push(...regexps)
 
     return this
   }
