@@ -47,15 +47,15 @@ export class MemoryCache implements CacheStrategy {
     for (const cacheKey of [...mapCache.keys()]) {
       if (tag.startsWith(NEXT_CACHE_IMPLICIT_TAG_ID) && tag === `${NEXT_CACHE_IMPLICIT_TAG_ID}${cacheKey}`) {
         await this.delete('', cacheKey)
-        return
+        continue
       }
 
       const pageData: CacheEntry = JSON.parse(mapCache.get(cacheKey))
       if (pageData?.tags?.includes(tag)) {
         await this.delete('', cacheKey)
-        return
       }
     }
+    return
   }
 
   async delete(_pageKey: string, cacheKey: string) {
