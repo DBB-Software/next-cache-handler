@@ -51,30 +51,25 @@ export class S3Cache implements CacheStrategy {
   }
 
   async revalidateTag(tag: string): Promise<void> {
+    if (tag.startsWith(NEXT_CACHE_IMPLICIT_TAG_ID)) {
+      await this.deleteAllByKeyMatch(tag.slice(NEXT_CACHE_IMPLICIT_TAG_ID.length))
+      return
+    }
+
     let nextContinuationToken: string | undefined = undefined
     do {
-      const listObjectsResult: ListObjectsV2CommandOutput = await this.client.listObjectsV2({
-        Bucket: this.bucketName,
-        ContinuationToken: nextContinuationToken
-      })
-      nextContinuationToken = listObjectsResult.NextContinuationToken
+      const { Contents: contents = [], NextContinuationToken: token }: ListObjectsV2CommandOutput =
+        await this.client.listObjectsV2({
+          Bucket: this.bucketName,
+          ContinuationToken: nextContinuationToken
+        })
+      nextContinuationToken = token
 
-      for (const { Key: key } of listObjectsResult?.Contents || []) {
-        if (key?.includes('/')) {
-          const pageKey = key.split('/')[0]
-          if (tag === `${NEXT_CACHE_IMPLICIT_TAG_ID}${pageKey}`) {
-            await this.client.deleteObject({ Bucket: this.bucketName, Key: key })
-            continue
-          }
-        }
+      for (const { Key: key } of contents) {
+        const { Metadata: metadata = {} } = await this.client.getObject({ Bucket: this.bucketName, Key: key })
 
-        const object = await this.client.getObject({ Bucket: this.bucketName, Key: key })
-
-        const { tags = '' } = object.Metadata || {}
-
-        if (!tags) continue
-
-        if (tags.split(TAGS_SEPARATOR).includes(tag)) {
+        const { tags = '' } = metadata
+        if (!!tags && tags.split(TAGS_SEPARATOR).includes(tag)) {
           await this.client.deleteObject({ Bucket: this.bucketName, Key: key })
         }
       }
@@ -94,17 +89,16 @@ export class S3Cache implements CacheStrategy {
   async deleteAllByKeyMatch(pageKey: string): Promise<void> {
     let nextContinuationToken: string | undefined = undefined
     do {
-      const listObjectsResult: ListObjectsV2CommandOutput = await this.client.listObjectsV2({
-        Bucket: this.bucketName,
-        ContinuationToken: nextContinuationToken
-      })
-      nextContinuationToken = listObjectsResult.NextContinuationToken
+      const { Contents: contents = [], NextContinuationToken: token }: ListObjectsV2CommandOutput =
+        await this.client.listObjectsV2({
+          Bucket: this.bucketName,
+          ContinuationToken: nextContinuationToken
+        })
+      nextContinuationToken = token
 
-      for (const { Key: key } of listObjectsResult?.Contents || []) {
-        if (key?.includes('/')) {
-          if (pageKey === key.split('/')[0]) {
-            await this.client.deleteObject({ Bucket: this.bucketName, Key: key })
-          }
+      for (const { Key: key } of contents) {
+        if (key?.includes('/') && pageKey === key.split('/')[0]) {
+          await this.client.deleteObject({ Bucket: this.bucketName, Key: key })
         }
       }
     } while (nextContinuationToken)

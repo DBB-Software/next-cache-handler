@@ -35,7 +35,7 @@ export class FileSystemCache implements CacheStrategy {
 
       if (tag.startsWith(NEXT_CACHE_IMPLICIT_TAG_ID) && tag === `${NEXT_CACHE_IMPLICIT_TAG_ID}${pageDirs.name}`) {
         await fs.rm(path.join(pageDirs.path, pageDirs.name), { recursive: true })
-        continue
+        return
       }
 
       const cacheFiles = await fs.readdir(path.join(pageDirs.path, pageDirs.name), { withFileTypes: true })
