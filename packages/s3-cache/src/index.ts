@@ -1,6 +1,8 @@
-import { S3 } from '@aws-sdk/client-s3'
-import { getAWSCredentials, type CacheEntry, type CacheStrategy } from '@dbbs/next-cache-handler-common'
 import { NEXT_CACHE_IMPLICIT_TAG_ID } from 'next/dist/lib/constants'
+import { ListObjectsV2CommandOutput, S3 } from '@aws-sdk/client-s3'
+import { getAWSCredentials, type CacheEntry, type CacheStrategy } from '@dbbs/next-cache-handler-common'
+
+const TAGS_SEPARATOR = ','
 
 export class S3Cache implements CacheStrategy {
   public readonly client: S3
@@ -35,36 +37,50 @@ export class S3Cache implements CacheStrategy {
   }
 
   async set(pageKey: string, cacheKey: string, data: CacheEntry): Promise<void> {
-    if (data.value?.kind === 'PAGE') {
-      await this.client.putObject({
-        Bucket: this.bucketName,
-        Key: `${this.removeSlashFromStart(pageKey)}/${cacheKey}.html`,
-        Body: data.value.html
-      })
+    const input = {
+      Bucket: this.bucketName,
+      Key: `${this.removeSlashFromStart(pageKey)}/${cacheKey}`,
+      ...(data.tags?.length ? { Metadata: { tags: data.tags.join(TAGS_SEPARATOR) } } : {})
     }
 
-    await this.client.putObject({
-      Bucket: this.bucketName,
-      Key: `${this.removeSlashFromStart(pageKey)}/${cacheKey}.json`,
-      Body: JSON.stringify(data)
-    })
+    if (data.value?.kind === 'PAGE') {
+      await this.client.putObject({ ...input, Key: `${input.Key}.html`, Body: data.value.html })
+    }
+
+    await this.client.putObject({ ...input, Key: `${input.Key}.json`, Body: JSON.stringify(data) })
   }
 
   async revalidateTag(tag: string): Promise<void> {
-    const allKeys: string[] = []
+    let nextContinuationToken: string | undefined = undefined
+    do {
+      const listObjectsResult: ListObjectsV2CommandOutput = await this.client.listObjectsV2({
+        Bucket: this.bucketName,
+        ContinuationToken: nextContinuationToken
+      })
+      nextContinuationToken = listObjectsResult.NextContinuationToken
 
-    for (const cacheKey of allKeys) {
-      if (tag.startsWith(NEXT_CACHE_IMPLICIT_TAG_ID) && tag === `${NEXT_CACHE_IMPLICIT_TAG_ID}${cacheKey}`) {
-        await this.delete('', cacheKey)
-        return
-      }
+      for (const { Key: key } of listObjectsResult?.Contents || []) {
+        if (key?.includes('/')) {
+          const pageKey = key.split('/')[0]
+          if (tag === `${NEXT_CACHE_IMPLICIT_TAG_ID}${pageKey}`) {
+            await this.client.deleteObject({ Bucket: this.bucketName, Key: key })
+            continue
+          }
+        }
 
-      const pageData: CacheEntry | null = await this.get('', cacheKey)
-      if (pageData?.tags?.includes(tag)) {
-        await this.delete('', cacheKey)
-        return
+        const object = await this.client.getObject({ Bucket: this.bucketName, Key: key })
+
+        const { tags = '' } = object.Metadata || {}
+
+        if (!tags) continue
+
+        if (tags.split(TAGS_SEPARATOR).includes(tag)) {
+          await this.client.deleteObject({ Bucket: this.bucketName, Key: key })
+        }
       }
-    }
+    } while (nextContinuationToken)
+
+    return
   }
 
   async delete(pageKey: string, cacheKey: string): Promise<void> {
@@ -76,9 +92,23 @@ export class S3Cache implements CacheStrategy {
   }
 
   async deleteAllByKeyMatch(pageKey: string): Promise<void> {
-    await this.client.deleteObject({
-      Bucket: this.bucketName,
-      Key: `${this.removeSlashFromStart(pageKey)}/`
-    })
+    let nextContinuationToken: string | undefined = undefined
+    do {
+      const listObjectsResult: ListObjectsV2CommandOutput = await this.client.listObjectsV2({
+        Bucket: this.bucketName,
+        ContinuationToken: nextContinuationToken
+      })
+      nextContinuationToken = listObjectsResult.NextContinuationToken
+
+      for (const { Key: key } of listObjectsResult?.Contents || []) {
+        if (key?.includes('/')) {
+          if (pageKey === key.split('/')[0]) {
+            await this.client.deleteObject({ Bucket: this.bucketName, Key: key })
+          }
+        }
+      }
+    } while (nextContinuationToken)
+
+    return
   }
 }
