@@ -1,0 +1,6 @@
+{
+    "name": "tsconfig",
+    "scripts": {
+        "clean": "npx rimraf .turbo node_modules dist bin coverage *.tsbuildinfo || exit 0"
+    }
+}

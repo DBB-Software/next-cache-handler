@@ -1,5 +1,5 @@
 import { createClient, RedisClientType, RedisClientOptions } from 'redis'
-import type { CacheEntry, CacheStrategy } from '../types'
+import type { CacheEntry, CacheStrategy } from '@dbbs/next-cache-handler-common'
 
 export class RedisCache implements CacheStrategy {
   client: RedisClientType<any, any, any>
@@ -9,18 +9,18 @@ export class RedisCache implements CacheStrategy {
     this.client.connect()
   }
 
-  async get(key: string): Promise<CacheEntry | null> {
-    const pageData = await this.client.get(key)
+  async get(_pageKey: string, cacheKey: string): Promise<CacheEntry | null> {
+    const pageData = await this.client.get(cacheKey)
     if (!pageData) return null
     return JSON.parse(pageData)
   }
 
-  async set(key: string, data: CacheEntry): Promise<void> {
-    await this.client.set(key, JSON.stringify(data))
+  async set(_pageKey: string, cacheKey: string, data: CacheEntry): Promise<void> {
+    await this.client.set(cacheKey, JSON.stringify(data))
   }
 
-  async delete(key: string): Promise<void> {
-    await this.client.del(key)
+  async delete(_pageKey: string, cacheKey: string): Promise<void> {
+    await this.client.del(cacheKey)
   }
 
   async deleteAllByKeyMatch(key: string): Promise<void> {

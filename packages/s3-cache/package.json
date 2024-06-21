@@ -1,0 +1,41 @@
+{
+  "name": "@dbbs/next-cache-handler-s3",
+  "version": "1.0.8",
+  "description": "",
+  "main": "lib/index.js",
+  "files": [
+    "lib"
+  ],
+  "types": "lib/index.d.ts",
+  "scripts": {
+    "clean": "npx rimraf .turbo node_modules lib bin coverage *.tsbuildinfo || exit 0",
+    "prepublishOnly": "npm run lint && npm run test && npm run build",
+    "test": "jest",
+    "lint": "eslint \"src/**/*.ts*\"",
+    "lint:fix": "eslint \"src/**/*.ts*\" --fix",
+    "build": "rm -rf lib && rollup -c --bundleConfigAsCjs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/DBB-Software/next-cache-handler.git"
+  },
+  "author": "Roman Bobrovskiy",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/DBB-Software/next-cache-handler/issues"
+  },
+  "homepage": "https://github.com/DBB-Software/next-cache-handler#readme",
+  "dependencies": {
+    "@aws-sdk/client-s3": "3.583.0"
+  },
+  "devDependencies": {
+    "tsconfig": "*",
+    "@dbbs/next-cache-handler-common": "*"
+  },
+  "directories": {
+    "lib": "lib"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

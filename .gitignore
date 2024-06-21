@@ -24,3 +24,6 @@ yarn-error.log*
 next-env.d.ts
 
 .DS_store
+.idea
+
+.turbo
