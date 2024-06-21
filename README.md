@@ -1,13 +1,6 @@
 
 # Next-Cache-Handler
 
-## Deprecated
-<div style="background: #efefef; color: #333;">
-<p style="margin: 0;">This package was deprecated. Use <a href="https://www.npmjs.com/package/@dbbs/next-cache-handler-core">@dbbs/next-cache-handler-core</a> instead.</p>
-
-
-</div>
-
 ## Introduction
 `@dbbs/next-cache-handler-core` is designed to elevate the performance of Next.js applications by providing a robust caching solution that adapts to cookies, query parameters, and device types. This enables the delivery of content that is finely tuned to the context of each user, significantly improving load times and user experience.
 
