@@ -1,11 +1,11 @@
-import { Cache, FileSystemCache, BaseLogger } from '../src'
+import { CacheHandler, FileSystemCache, BaseLogger } from '../src'
 import { mockNextHandlerContext, mockPageData, mockHandlerMethodContext, mockCacheStrategyContext } from './mocks'
 
 const mockGetData = jest.fn()
 const mockSetData = jest.fn()
 const mockDeleteData = jest.fn()
 
-jest.mock('../src/strategies/fileSystem', () => {
+jest.mock('../src/cacheStrategy/fileSystem', () => {
   return {
     FileSystemCache: jest.fn().mockImplementation(() => ({
       get: jest.fn((...params) => mockGetData(...params)),
@@ -22,36 +22,16 @@ const mockLogger: BaseLogger = {
 
 const mockCacheKey = 'test'
 
-const RegExpMatcher = /^(\/api\/.*|\/_next\/static\/.*|\/_next\/image\/.*|\/favicon\.ico)$/
-const NonMatchedPaths = [
-  '/api/users',
-  '/api/v1/login',
-  '/_next/static/css/main.css',
-  '/_next/static/js/bundle.js',
-  '/_next/image/file.png',
-  '/_next/image/optimized/photo.jpg',
-  '/favicon.ico'
-]
-const matchedPaths = [
-  '/home',
-  '/user/profile',
-  '/static/_next/css/main.css',
-  '/image/_next/file.png',
-  '/favicon.png',
-  '/next/static/js/bundle.js',
-  '/image/file.png'
-]
-
 describe('CacheHandler', () => {
   beforeAll(() => {
     jest.useFakeTimers().setSystemTime(Date.now())
   })
 
   afterEach(() => {
-    Cache.cacheCookies = []
-    Cache.cacheQueries = []
-    Cache.enableDeviceSplit = false
-    Cache.noCacheMatchers = []
+    CacheHandler.cacheCookies = []
+    CacheHandler.cacheQueries = []
+    CacheHandler.enableDeviceSplit = false
+    CacheHandler.noCacheRoutes = []
     jest.clearAllMocks()
   })
 
@@ -120,16 +100,16 @@ describe('CacheHandler', () => {
     'should handle cache $description',
     async ({ cacheCookie, cacheQuery, cacheStrategy, addDeviceSplit, overrideHeaders, expectedCacheSuffix }) => {
       if (cacheCookie) {
-        Cache.addCookie(cacheCookie)
+        CacheHandler.addCookie(cacheCookie)
       }
       if (cacheQuery) {
-        Cache.addQuery(cacheQuery)
+        CacheHandler.addQuery(cacheQuery)
       }
-      Cache.enableDeviceSplit = addDeviceSplit
-      Cache.setCacheStrategy(cacheStrategy)
-      Cache.setLogger(mockLogger)
+      CacheHandler.enableDeviceSplit = addDeviceSplit
+      CacheHandler.setCacheStrategy(cacheStrategy)
+      CacheHandler.setLogger(mockLogger)
 
-      const cacheHandler = new Cache({
+      const cacheHandler = new CacheHandler({
         ...mockNextHandlerContext,
         _requestHeaders: overrideHeaders
       })
@@ -138,12 +118,11 @@ describe('CacheHandler', () => {
 
       await cacheHandler.get(pageKey)
       expect(cacheStrategy.get).toHaveBeenCalledTimes(1)
-      expect(cacheStrategy.get).toHaveBeenCalledWith(pageKey, currentCacheKey, mockCacheStrategyContext)
+      expect(cacheStrategy.get).toHaveBeenCalledWith(currentCacheKey, mockCacheStrategyContext)
 
       await cacheHandler.set(pageKey, mockPageData, mockHandlerMethodContext)
       expect(cacheStrategy.set).toHaveBeenCalledTimes(1)
       expect(cacheStrategy.set).toHaveBeenCalledWith(
-        pageKey,
         currentCacheKey,
         {
           value: mockPageData,
@@ -157,24 +136,23 @@ describe('CacheHandler', () => {
   )
 
   it('should log when read data from cache', async () => {
-    Cache.setCacheStrategy(new FileSystemCache())
-    Cache.setLogger(mockLogger)
-    const cacheHandler = new Cache(mockNextHandlerContext)
+    CacheHandler.setCacheStrategy(new FileSystemCache())
+    CacheHandler.setLogger(mockLogger)
+    const cacheHandler = new CacheHandler(mockNextHandlerContext)
 
     await cacheHandler.get(mockCacheKey)
 
-    expect(mockLogger.info).toHaveBeenCalledTimes(2)
+    expect(mockLogger.info).toHaveBeenCalledTimes(1)
     expect(mockLogger.info).toHaveBeenCalledWith(`Reading cache data for ${mockCacheKey}`)
-    expect(mockLogger.info).toHaveBeenCalledWith(`No actual cache found for ${mockCacheKey}`)
   })
 
   it('should log when failed to read data from cache', async () => {
     const errorMessage = 'Error reading'
     mockGetData.mockRejectedValueOnce(errorMessage)
 
-    Cache.setCacheStrategy(new FileSystemCache())
-    Cache.setLogger(mockLogger)
-    const cacheHandler = new Cache(mockNextHandlerContext)
+    CacheHandler.setCacheStrategy(new FileSystemCache())
+    CacheHandler.setLogger(mockLogger)
+    const cacheHandler = new CacheHandler(mockNextHandlerContext)
 
     await cacheHandler.get(mockCacheKey)
 
@@ -186,9 +164,9 @@ describe('CacheHandler', () => {
   })
 
   it('should log when set data to cache', async () => {
-    Cache.setCacheStrategy(new FileSystemCache())
-    Cache.setLogger(mockLogger)
-    const cacheHandler = new Cache(mockNextHandlerContext)
+    CacheHandler.setCacheStrategy(new FileSystemCache())
+    CacheHandler.setLogger(mockLogger)
+    const cacheHandler = new CacheHandler(mockNextHandlerContext)
 
     await cacheHandler.set(mockCacheKey, mockPageData, mockCacheStrategyContext)
 
@@ -200,9 +178,9 @@ describe('CacheHandler', () => {
     const errorMessage = 'Error writing'
     mockSetData.mockRejectedValueOnce(errorMessage)
 
-    Cache.setCacheStrategy(new FileSystemCache())
-    Cache.setLogger(mockLogger)
-    const cacheHandler = new Cache(mockNextHandlerContext)
+    CacheHandler.setCacheStrategy(new FileSystemCache())
+    CacheHandler.setLogger(mockLogger)
+    const cacheHandler = new CacheHandler(mockNextHandlerContext)
 
     await cacheHandler.set(mockCacheKey, mockPageData, mockCacheStrategyContext)
 
@@ -214,14 +192,14 @@ describe('CacheHandler', () => {
   })
 
   it('should delete page cache if data was not passed', async () => {
-    Cache.setCacheStrategy(new FileSystemCache())
-    Cache.setLogger(mockLogger)
-    const cacheHandler = new Cache(mockNextHandlerContext)
+    CacheHandler.setCacheStrategy(new FileSystemCache())
+    CacheHandler.setLogger(mockLogger)
+    const cacheHandler = new CacheHandler(mockNextHandlerContext)
 
     await cacheHandler.set(mockCacheKey, null, mockCacheStrategyContext)
 
     expect(mockDeleteData).toHaveBeenCalledTimes(1)
-    expect(mockDeleteData).toHaveBeenCalledWith(mockCacheKey, mockCacheKey, mockCacheStrategyContext)
+    expect(mockDeleteData).toHaveBeenCalledWith(mockCacheKey, mockCacheStrategyContext)
 
     expect(mockLogger.info).toHaveBeenCalledTimes(2)
     expect(mockLogger.info).toHaveBeenNthCalledWith(1, `Writing cache for ${mockCacheKey}`)
@@ -232,9 +210,9 @@ describe('CacheHandler', () => {
     const errorMessage = 'error deleting'
     mockDeleteData.mockRejectedValueOnce(errorMessage)
 
-    Cache.setCacheStrategy(new FileSystemCache())
-    Cache.setLogger(mockLogger)
-    const cacheHandler = new Cache(mockNextHandlerContext)
+    CacheHandler.setCacheStrategy(new FileSystemCache())
+    CacheHandler.setLogger(mockLogger)
+    const cacheHandler = new CacheHandler(mockNextHandlerContext)
 
     await cacheHandler.set(mockCacheKey, null, mockCacheStrategyContext)
 
@@ -246,80 +224,13 @@ describe('CacheHandler', () => {
     expect(mockLogger.error).toHaveBeenCalledWith(`Failed to delete cache data for ${mockCacheKey}`, errorMessage)
   })
 
-  it('should skip reading / writing data if route listed as no cache using value', async () => {
-    Cache.setCacheStrategy(new FileSystemCache())
-    Cache.addNoCacheMatchers(mockCacheKey)
-    const cacheHandler = new Cache(mockNextHandlerContext)
+  it('should skip reading / writing data if route listed as no cache', async () => {
+    CacheHandler.setCacheStrategy(new FileSystemCache())
+    CacheHandler.addNoCacheRoute(mockCacheKey)
+    const cacheHandler = new CacheHandler(mockNextHandlerContext)
 
     await cacheHandler.set(mockCacheKey, mockPageData, mockHandlerMethodContext)
     const res = await cacheHandler.get(mockCacheKey)
-    expect(mockLogger.info).toHaveBeenCalledTimes(0)
     expect(res).toBeNull()
-  })
-
-  it('should skip reading / writing data if route listed as no cache using regular expressions)', async () => {
-    Cache.setCacheStrategy(new FileSystemCache())
-    Cache.setLogger(mockLogger)
-
-    Cache.addNoCacheMatchers(RegExpMatcher)
-    const cacheHandler = new Cache(mockNextHandlerContext)
-
-    for (const nonMatchedPath of NonMatchedPaths) {
-      await cacheHandler.set(nonMatchedPath, mockPageData, mockHandlerMethodContext)
-      await cacheHandler.get(nonMatchedPath)
-    }
-
-    expect(mockLogger.info).toHaveBeenCalledTimes(0)
-
-    for (const matchedPath of matchedPaths) {
-      await cacheHandler.set(matchedPath, mockPageData, mockHandlerMethodContext)
-      await cacheHandler.get(matchedPath)
-    }
-
-    expect(mockLogger.info).toHaveBeenCalledTimes(21)
-  })
-
-  it('should skip reading / writing data if route listed as no cache using regular expressions and additional value)', async () => {
-    Cache.setCacheStrategy(new FileSystemCache())
-    Cache.setLogger(mockLogger)
-
-    Cache.addNoCacheMatchers([RegExpMatcher, '/home'])
-    const cacheHandler = new Cache(mockNextHandlerContext)
-
-    for (const nonMatchedPath of NonMatchedPaths) {
-      await cacheHandler.set(nonMatchedPath, mockPageData, mockHandlerMethodContext)
-      await cacheHandler.get(nonMatchedPath)
-    }
-
-    expect(mockLogger.info).toHaveBeenCalledTimes(0)
-
-    for (const matchedPath of matchedPaths) {
-      await cacheHandler.set(matchedPath, mockPageData, mockHandlerMethodContext)
-      await cacheHandler.get(matchedPath)
-    }
-
-    expect(mockLogger.info).toHaveBeenCalledTimes(18)
-  })
-
-  it('should skip reading / writing data if route listed as no cache using regular expressions and additional matcher)', async () => {
-    Cache.setCacheStrategy(new FileSystemCache())
-    Cache.setLogger(mockLogger)
-
-    Cache.addNoCacheMatchers([RegExpMatcher, '/:path'])
-    const cacheHandler = new Cache(mockNextHandlerContext)
-
-    for (const nonMatchedPath of NonMatchedPaths) {
-      await cacheHandler.set(nonMatchedPath, mockPageData, mockHandlerMethodContext)
-      await cacheHandler.get(nonMatchedPath)
-    }
-
-    expect(mockLogger.info).toHaveBeenCalledTimes(0)
-
-    for (const matchedPath of matchedPaths) {
-      await cacheHandler.set(matchedPath, mockPageData, mockHandlerMethodContext)
-      await cacheHandler.get(matchedPath)
-    }
-
-    expect(mockLogger.info).toHaveBeenCalledTimes(15)
   })
 })

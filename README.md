@@ -9,7 +9,7 @@
 </div>
 
 ## Introduction
-`@dbbs/next-cache-handler-core` is designed to elevate the performance of Next.js applications by providing a robust caching solution that adapts to cookies, query parameters, and device types. This enables the delivery of content that is finely tuned to the context of each user, significantly improving load times and user experience.
+`next-cache-handler` is designed to elevate the performance of Next.js applications by providing a robust caching solution that adapts to cookies, query parameters, and device types. This enables the delivery of content that is finely tuned to the context of each user, significantly improving load times and user experience.
 
 ## Table of Contents
 - [Features](#features)
@@ -35,17 +35,17 @@
 ### Installation
 Ensure you have Node.js version 12 or higher installed.
 ```bash
-npm i @dbbs/next-cache-handler-core
+npm i -s next-cache-handler
 # or
-yarn add @dbbs/next-cache-handler-core
+yarn add next-cache-handler
 ```
 
 ### Configuration
 Create a `cacheHandler.js` in your project and configure as follows:
 ```javascript
-import { Cache, FileSystemCache } from '@dbbs/next-cache-handler-core'
+import { CacheHandler, FileSystemCache } from 'next-cache-handler'
 
-Cache
+CacheHandler
     .setCacheStrategy(new FileSystemCache())
     .addCookie('my-cookie-1')
     .addCookie('my-cookie-2')
@@ -53,7 +53,7 @@ Cache
     .addQuery('my-query-2')
     .addDeviceSplit()
     // Additional configuration...
-export default Cache    
+export default CacheHandler    
 ```
 
 Update your `next.config.js` to use the cache handler.
@@ -70,26 +70,25 @@ export default nextConfig
 Explore various caching strategies to find the best fit for your application's needs:
 - **MemoryCache**: Ideal for short-lived data in applications with limited cache size requirements. By default limit of size is set to 512MB.
 ```
-import { Cache, MemoryCache } from '@dbbs/next-cache-handler-core'
+import { CacheHandler, MemoryCache } from 'next-cache-handler'
 
-Cache.setCacheStrategy(new MemoryCache())
+CacheHandler.setCacheStrategy(new MemoryCache())
 ```
 ```
-import { Cache, MemoryCache } from '@dbbs/next-cache-handler-core'
+import { CacheHandler, MemoryCache } from 'next-cache-handler'
 
 // extending size limitation to 1024MB.
-Cache.addStrategy(new MemoryCache({ sizeLimit: 1024 }))
+CacheHandler.addStrategy(new MemoryCache({ sizeLimit: 1024 }))
 ```
 - **FileSystemCache**: Suitable for persistent caching across application restarts.
 ```
-import { Cache, FileSystemCache } from '@dbbs/next-cache-handler-core'
+import { CacheHandler, FileSystemCache } from 'next-cache-handler'
 
-Cache.setCacheStrategy(new FileSystemCache())
+CacheHandler.setCacheStrategy(new FileSystemCache())
 ```
 - **Redis**: Perfect for distributed applications requiring shared cache access.
 ```
-import { Cache } from '@dbbs/next-cache-handler-core'
-import { RedisCache } from '@dbbs/next-cache-handler-redis'
+import { CacheHandler, RedisCache } from 'next-cache-handler'
 
 // list of all accepted redis connection options.
 const redisConnectionOpts = {
@@ -97,57 +96,43 @@ const redisConnectionOpts = {
     ...
 }
 
-Cache.setCacheStrategy(new RedisCache(redisConnectionOpts))
+CacheHandler.setCacheStrategy(new RedisCache(redisConnectionOpts))
 ```
-- **S3**: Suitable for high scalable applications.
-```
-import { Cache } from '@dbbs/next-cache-handler-core'
-import { S3Cache } from '@dbbs/next-cache-handler-s3'
 
-Cache.setCacheStrategy(new S3Cache('cache-bucket-name'))
-```
 
 ## API Reference
 
 ### `addCookie`
 Cookie name what is going to be used to fragmentate cache based on browser cookies session.
 ```
-Cache.addCookie('my-cookie-to-split')
+CacheHandler.addCookie('my-cookie-to-split')
 ```
 
 ### `addQuery`
 Query name to fragmentate cache based on url query parameters.
 ```
-Cache.addQuery('my-query-to-split')
+CacheHandler.addQuery('my-query-to-split')
 ```
 
 ### `addDeviceSplit`
 Enables to fragmentate experience based on current `User-Agent` of the request.
 ```
-Cache.addDeviceSplit()
+CacheHandler.addDeviceSplit()
 ```
 
 ### `setCacheStrategy`
 Applies given strategy to cache page data.
 ```
-Cache.setCacheStrategy(new MemoryCache())
+CacheHandler.setCacheStrategy(new MemoryCache())
 ```
 
-### `addNoCacheMatchers`
-This allows you to exclude pages for which caching should be disabled. 
-You can match one or more paths using array syntax. The matcher config allows full regex. 
+### `addNoCacheRoute`
 Add route to ignore cache list. All routes added here would be excluded from caching and will always render again.
-```
-Cache.addNoCacheMatchers('/home')
-Cache.addNoCacheMatchers(['/home','/about'])
-Cache.addNoCacheMatchers('/catalog/:page')
-```
-Read more details on [path-to-regexp](https://github.com/pillarjs/path-to-regexp#path-to-regexp-1) documentation.
 
 ## Logging
 Leverage the built-in logger for monitoring cache operations or integrate your custom logger for advanced logging capabilities.
 ```
-import { BaseLogger, Cache, FileSystemCache } from '@dbbs/next-cache-handler-core'
+import { BaseLogger, CacheHandler, FileSystemCache } from 'next-cache-handler'
 
 class MyCustomLogger implements BaseLogger {
     constructor() {}
@@ -161,7 +146,7 @@ class MyCustomLogger implements BaseLogger {
     }
 }
 
-Cache.setCacheStrategy(new FileSystemCache).setLogger(new MyCustomLogger())
+CacheHandler.setCacheStrategy(new FileSystemCache(new MyCustomLogger()))
 ```
 
 ## Contributing

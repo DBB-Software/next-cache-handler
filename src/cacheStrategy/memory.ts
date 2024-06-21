@@ -1,4 +1,4 @@
-import type { CacheEntry, CacheStrategy } from '@dbbs/next-cache-handler-common'
+import type { CacheEntry, CacheStrategy } from '../types'
 
 const mapCache = new Map()
 
@@ -32,29 +32,29 @@ export class MemoryCache implements CacheStrategy {
     this.#totalSize = shouldClearCache ? currentEntrySize : finalSize
   }
 
-  get(_pageKey: string, cacheKey: string) {
+  get(cacheKey: string) {
     const data = mapCache.get(cacheKey)
     return data ? JSON.parse(data) : null
   }
 
-  async set(_pageKey: string, cacheKey: string, data: CacheEntry) {
+  async set(key: string, data: CacheEntry) {
     this.#setAndValidateTotalSize(data)
-    mapCache.set(cacheKey, JSON.stringify(data))
+    mapCache.set(key, JSON.stringify(data))
   }
 
-  async delete(_pageKey: string, cacheKey: string) {
-    const currentItemSize = this.#getItemSizeInMB(mapCache.get(cacheKey))
+  async delete(key: string) {
+    const currentItemSize = this.#getItemSizeInMB(mapCache.get(key))
     this.#totalSize = this.#totalSize - currentItemSize
 
-    mapCache.delete(cacheKey)
+    mapCache.delete(key)
   }
 
-  async deleteAllByKeyMatch(pageKey: string) {
+  async deleteAllByKeyMatch(key: string) {
     const allKeys = [...mapCache.keys()]
 
     allKeys.forEach((cacheKey) => {
-      if (cacheKey.startsWith(pageKey)) {
-        this.delete(pageKey, cacheKey)
+      if (cacheKey.startsWith(key)) {
+        this.delete(cacheKey)
       }
     })
   }

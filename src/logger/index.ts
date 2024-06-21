@@ -1,4 +1,4 @@
-import { BaseLogger, LoggerInputParams } from '@dbbs/next-cache-handler-common'
+import { BaseLogger, LoggerInputParams } from '../types'
 
 export class ConsoleLogger implements BaseLogger {
   constructor() {}

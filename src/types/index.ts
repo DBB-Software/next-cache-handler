@@ -22,10 +22,10 @@ export interface CacheContext {
 }
 
 export interface CacheStrategy {
-  get(pageKey: string, cacheKey: string, ctx: CacheContext): Promise<CacheEntry | null>
-  set(pageKey: string, cacheKey: string, data: CacheEntry, ctx: CacheContext): Promise<void>
-  delete(pageKey: string, cacheKey: string, ctx: CacheContext): Promise<void>
-  deleteAllByKeyMatch(pageKey: string, ctx: CacheContext): Promise<void>
+  get(key: string, ctx: CacheContext): Promise<CacheEntry | null>
+  set(key: string, data: CacheEntry, ctx: CacheContext): Promise<void>
+  delete(key: string, ctx: CacheContext): Promise<void>
+  deleteAllByKeyMatch(key: string, ctx: CacheContext): Promise<void>
 }
 
 export interface CacheHandlerContext {
@@ -52,6 +52,6 @@ export declare class CacheHandler {
 
   constructor(context: NextCacheHandlerContext)
 
-  get(pageKey: string, ctx: CacheHandlerContext): Promise<CacheEntry | null>
-  set(pageKey: string, data: IncrementalCacheValue | null, ctx: CacheHandlerContext): Promise<void>
+  get(cacheKey: string, ctx: CacheHandlerContext): Promise<CacheEntry | null>
+  set(cacheKey: string, data: IncrementalCacheValue | null, ctx: CacheHandlerContext): Promise<void>
 }
