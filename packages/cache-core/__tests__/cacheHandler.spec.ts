@@ -4,13 +4,15 @@ import { mockNextHandlerContext, mockPageData, mockHandlerMethodContext, mockCac
 const mockGetData = jest.fn()
 const mockSetData = jest.fn()
 const mockDeleteData = jest.fn()
+const mockRevalidateTagData = jest.fn()
 
 jest.mock('../src/strategies/fileSystem', () => {
   return {
     FileSystemCache: jest.fn().mockImplementation(() => ({
       get: jest.fn((...params) => mockGetData(...params)),
       set: jest.fn((...params) => mockSetData(...params)),
-      delete: jest.fn((...params) => mockDeleteData(...params))
+      delete: jest.fn((...params) => mockDeleteData(...params)),
+      revalidateTag: jest.fn((...params) => mockRevalidateTagData(...params))
     }))
   }
 })
@@ -321,5 +323,61 @@ describe('CacheHandler', () => {
     }
 
     expect(mockLogger.info).toHaveBeenCalledTimes(15)
+  })
+
+  it('should log when revalidate path', async () => {
+    Cache.setCacheStrategy(new FileSystemCache())
+    Cache.setLogger(mockLogger)
+    const cacheHandler = new Cache(mockNextHandlerContext)
+
+    await cacheHandler.revalidateTag(`_N_T_${mockCacheKey}`)
+
+    expect(mockLogger.info).toHaveBeenCalledTimes(1)
+    expect(mockLogger.info).toHaveBeenNthCalledWith(1, `Revalidate by path ${mockCacheKey}`)
+  })
+
+  it('should log when revalidate tag', async () => {
+    Cache.setCacheStrategy(new FileSystemCache())
+    Cache.setLogger(mockLogger)
+    const cacheHandler = new Cache(mockNextHandlerContext)
+
+    await cacheHandler.revalidateTag(mockCacheKey)
+
+    expect(mockLogger.info).toHaveBeenCalledTimes(1)
+    expect(mockLogger.info).toHaveBeenNthCalledWith(1, `Revalidate by tag ${mockCacheKey}`)
+  })
+
+  it('should log when failed to revalidate tag', async () => {
+    const errorMessage = 'error revalidate'
+    mockRevalidateTagData.mockRejectedValueOnce(errorMessage)
+
+    Cache.setCacheStrategy(new FileSystemCache())
+    Cache.setLogger(mockLogger)
+    const cacheHandler = new Cache(mockNextHandlerContext)
+
+    await cacheHandler.revalidateTag(mockCacheKey)
+
+    expect(mockLogger.info).toHaveBeenCalledTimes(1)
+    expect(mockLogger.info).toHaveBeenNthCalledWith(1, `Revalidate by tag ${mockCacheKey}`)
+
+    expect(mockLogger.error).toHaveBeenCalledTimes(1)
+    expect(mockLogger.error).toHaveBeenCalledWith(`Failed revalidate by tag ${mockCacheKey}`, errorMessage)
+  })
+
+  it('should log when failed to revalidate path', async () => {
+    const errorMessage = 'error revalidate'
+    mockRevalidateTagData.mockRejectedValueOnce(errorMessage)
+
+    Cache.setCacheStrategy(new FileSystemCache())
+    Cache.setLogger(mockLogger)
+    const cacheHandler = new Cache(mockNextHandlerContext)
+
+    await cacheHandler.revalidateTag(`_N_T_${mockCacheKey}`)
+
+    expect(mockLogger.info).toHaveBeenCalledTimes(1)
+    expect(mockLogger.info).toHaveBeenNthCalledWith(1, `Revalidate by path ${mockCacheKey}`)
+
+    expect(mockLogger.error).toHaveBeenCalledTimes(1)
+    expect(mockLogger.error).toHaveBeenCalledWith(`Failed revalidate by path ${mockCacheKey}`, errorMessage)
   })
 })
