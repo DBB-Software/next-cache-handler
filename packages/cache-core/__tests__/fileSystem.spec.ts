@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment */
+import { NEXT_CACHE_IMPLICIT_TAG_ID } from 'next/dist/lib/constants'
 import { FileSystemCache } from '../src/'
 import { mockCacheEntry, mockCacheStrategyContext } from './mocks'
 
@@ -6,17 +8,25 @@ const cacheKey = 'test'
 const cacheKey2 = 'test-2'
 
 const cacheFilePath = `${mockCacheStrategyContext.serverCacheDirPath}/${cacheKey}/${cacheKey}.json`
-const cacheFile2Path = `${mockCacheStrategyContext.serverCacheDirPath}/${cacheKey2}/${cacheKey2}.json`
 
 const store = new Map()
 const mockReadFile = jest.fn().mockImplementation((path) => store.get(path))
 const mockWriteFile = jest.fn().mockImplementation((path, data) => store.set(path, data))
-const mockRm = jest.fn().mockImplementation((path) => store.delete(path))
-const mockReaddir = jest
-  .fn()
-  .mockImplementation(() =>
-    [...store.keys()].map((k) => k.replace(`${mockCacheStrategyContext.serverCacheDirPath}/`, ''))
-  )
+const mockRm = jest.fn().mockImplementation((path) => {
+  // @ts-ignore
+  ;[...store.keys()].filter((key) => key.startsWith(path)).forEach((path) => store.delete(path))
+})
+
+const mockReaddir = jest.fn().mockImplementation((path: string, option) =>
+  // @ts-ignore
+  [...store.keys()].map((k) => {
+    if (option) {
+      const name = k.replace(`${path}/`, '').split('/')[0]
+      return { path, name, isDirectory: () => !name?.endsWith('.json') }
+    }
+    return k.replace(`${mockCacheStrategyContext.serverCacheDirPath}/`, '')
+  })
+)
 const mockExistsSync = jest.fn().mockImplementation(() => true)
 
 jest.mock('node:fs/promises', () => {
@@ -78,13 +88,44 @@ describe('FileSystemCache', () => {
     expect(result2).toEqual(mockCacheEntry)
 
     await fileSystemCache.deleteAllByKeyMatch(cacheKey, mockCacheStrategyContext)
-    expect(mockRm).toHaveBeenCalledTimes(2)
+    expect(mockRm).toHaveBeenCalledTimes(1)
     expect(mockRm).toHaveBeenNthCalledWith(1, cacheFilePath)
-    expect(mockRm).toHaveBeenNthCalledWith(2, cacheFile2Path)
 
-    const updatedResult1 = await fileSystemCache.get(cacheKey, cacheKey, mockCacheStrategyContext)
-    const updatedResult2 = await fileSystemCache.get(cacheKey2, cacheKey2, mockCacheStrategyContext)
-    expect(updatedResult1).toBeNull()
-    expect(updatedResult2).toBeNull()
+    expect(await fileSystemCache.get(cacheKey, cacheKey, mockCacheStrategyContext)).toBeNull()
+    expect(await fileSystemCache.get(cacheKey2, cacheKey2, mockCacheStrategyContext)).toEqual(mockCacheEntry)
+
+    await fileSystemCache.deleteAllByKeyMatch(cacheKey2, mockCacheStrategyContext)
+    expect(await fileSystemCache.get(cacheKey2, cacheKey2, mockCacheStrategyContext)).toBeNull()
+  })
+
+  it('should revalidate cache by tag', async () => {
+    const mockCacheEntryWithTags = { ...mockCacheEntry, tags: [cacheKey] }
+    await fileSystemCache.set(cacheKey, cacheKey, mockCacheEntryWithTags, mockCacheStrategyContext)
+    expect(mockWriteFile).toHaveBeenCalledTimes(1)
+    expect(mockWriteFile).toHaveBeenCalledWith(cacheFilePath, JSON.stringify(mockCacheEntryWithTags))
+
+    const result = await fileSystemCache.get(cacheKey, cacheKey, mockCacheStrategyContext)
+    expect(result).toEqual(mockCacheEntryWithTags)
+    expect(mockReadFile).toHaveBeenCalledTimes(1)
+    expect(mockReadFile).toHaveBeenCalledWith(cacheFilePath, 'utf-8')
+
+    await fileSystemCache.revalidateTag(cacheKey, mockCacheStrategyContext)
+    const updatedResult = await fileSystemCache.get(cacheKey, cacheKey, mockCacheStrategyContext)
+    expect(updatedResult).toBeNull()
+  })
+
+  it('should revalidate cache by path', async () => {
+    await fileSystemCache.set(cacheKey, cacheKey, mockCacheEntry, mockCacheStrategyContext)
+    expect(mockWriteFile).toHaveBeenCalledTimes(1)
+    expect(mockWriteFile).toHaveBeenCalledWith(cacheFilePath, JSON.stringify(mockCacheEntry))
+
+    const result = await fileSystemCache.get(cacheKey, cacheKey, mockCacheStrategyContext)
+    expect(result).toEqual(mockCacheEntry)
+    expect(mockReadFile).toHaveBeenCalledTimes(1)
+    expect(mockReadFile).toHaveBeenCalledWith(cacheFilePath, 'utf-8')
+
+    await fileSystemCache.revalidateTag(`${NEXT_CACHE_IMPLICIT_TAG_ID}${cacheKey}`, mockCacheStrategyContext)
+    const updatedResult = await fileSystemCache.get(cacheKey, cacheKey, mockCacheStrategyContext)
+    expect(updatedResult).toBeNull()
   })
 })
