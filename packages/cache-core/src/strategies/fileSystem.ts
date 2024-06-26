@@ -38,9 +38,9 @@ export class FileSystemCache implements CacheStrategy {
     // Revalidate by Tag
     const recursiveDelete = async (initPath: string = '') => {
       const cacheDir = await fs.readdir(initPath, { withFileTypes: true })
-      for (const { path: itemPath, name: itemName, isDirectory } of cacheDir) {
-        const pathToItem = path.join(itemPath, itemName)
-        if (isDirectory()) {
+      for (const cacheItem of cacheDir) {
+        const pathToItem = path.join(cacheItem.path, cacheItem.name)
+        if (cacheItem.isDirectory()) {
           await recursiveDelete(pathToItem)
           continue
         }

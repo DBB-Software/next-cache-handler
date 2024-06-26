@@ -1,3 +1,4 @@
+import { NEXT_CACHE_IMPLICIT_TAG_ID } from 'next/dist/lib/constants'
 import { Cache, FileSystemCache, BaseLogger } from '../src'
 import { mockNextHandlerContext, mockPageData, mockHandlerMethodContext, mockCacheStrategyContext } from './mocks'
 
@@ -372,7 +373,7 @@ describe('CacheHandler', () => {
     Cache.setLogger(mockLogger)
     const cacheHandler = new Cache(mockNextHandlerContext)
 
-    await cacheHandler.revalidateTag(`_N_T_${mockCacheKey}`)
+    await cacheHandler.revalidateTag(`${NEXT_CACHE_IMPLICIT_TAG_ID}${mockCacheKey}`)
 
     expect(mockLogger.info).toHaveBeenCalledTimes(1)
     expect(mockLogger.info).toHaveBeenNthCalledWith(1, `Revalidate by path ${mockCacheKey}`)
