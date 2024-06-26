@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment */
+import { NEXT_CACHE_IMPLICIT_TAG_ID } from 'next/dist/lib/constants'
 import { CacheEntry } from '@dbbs/next-cache-handler-common'
 import { S3Cache } from '../src'
 
@@ -16,12 +18,20 @@ export const mockCacheEntry: CacheEntry = {
 }
 
 const store = new Map()
-const mockGetObject = jest.fn().mockImplementation(({ Key }) => {
+const mockGetObject = jest.fn().mockImplementation(async ({ Key }) => {
   const res = store.get(Key)
-  return res ? { Body: { transformToString: () => res } } : { Body: undefined }
+  return res
+    ? { Body: { transformToString: () => res.Body }, Metadata: res.Metadata }
+    : { Body: undefined, Metadata: undefined }
 })
-const mockPutObject = jest.fn().mockImplementation(({ Key, Body }) => store.set(Key, Body))
-const mockDeleteObject = jest.fn().mockImplementation(({ Key }) => store.delete(Key))
+const mockPutObject = jest
+  .fn()
+  .mockImplementation(async ({ Key, Body, Metadata }) => store.set(Key, { Body, Metadata }))
+const mockDeleteObject = jest.fn().mockImplementation(async ({ Key }) => store.delete(Key))
+const mockGetObjectList = jest
+  .fn()
+  // @ts-ignore
+  .mockImplementation(async () => ({ Contents: [...store.keys()].map((key) => ({ Key: key })) }))
 
 jest.mock('@dbbs/next-cache-handler-common', () => ({
   ...jest.requireActual('@dbbs/next-cache-handler-common'),
@@ -37,6 +47,7 @@ jest.mock('@aws-sdk/client-s3', () => {
       getObject: jest.fn((...params) => mockGetObject(...params)),
       putObject: jest.fn((...params) => mockPutObject(...params)),
       deleteObject: jest.fn((...params) => mockDeleteObject(...params)),
+      listObjectsV2: jest.fn((...params) => mockGetObjectList(...params)),
       config: {}
     })
   }
@@ -102,10 +113,34 @@ describe('S3Cache', () => {
     await s3Cache.delete(cacheKey, cacheKey)
     const updatedResult = await s3Cache.get(cacheKey, cacheKey)
     expect(updatedResult).toBeNull()
-    expect(s3Cache.client.deleteObject).toHaveBeenCalledTimes(1)
-    expect(s3Cache.client.deleteObject).toHaveBeenCalledWith({
+    expect(s3Cache.client.deleteObject).toHaveBeenCalledTimes(2)
+    expect(s3Cache.client.deleteObject).toHaveBeenNthCalledWith(1, {
       Bucket: mockBucketName,
       Key: `${cacheKey}/${cacheKey}.json`
     })
+    expect(s3Cache.client.deleteObject).toHaveBeenNthCalledWith(2, {
+      Bucket: mockBucketName,
+      Key: `${cacheKey}/${cacheKey}.html`
+    })
+  })
+
+  it('should revalidate cache by tag', async () => {
+    const mockCacheEntryWithTags = { ...mockCacheEntry, tags: [cacheKey] }
+    await s3Cache.set(cacheKey, cacheKey, mockCacheEntryWithTags)
+
+    expect(await s3Cache.get(cacheKey, cacheKey)).toEqual(mockCacheEntryWithTags)
+
+    await s3Cache.revalidateTag(cacheKey)
+
+    expect(await s3Cache.get(cacheKey, cacheKey)).toBeNull()
+  })
+
+  it('should revalidate cache by path', async () => {
+    await s3Cache.set(cacheKey, cacheKey, mockCacheEntry)
+
+    expect(await s3Cache.get(cacheKey, cacheKey)).toEqual(mockCacheEntry)
+
+    await s3Cache.revalidateTag(`${NEXT_CACHE_IMPLICIT_TAG_ID}${cacheKey}`)
+    expect(await s3Cache.get(cacheKey, cacheKey)).toBeNull()
   })
 })
