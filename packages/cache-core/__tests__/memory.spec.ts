@@ -16,7 +16,7 @@ describe('MemoryCache', () => {
     memoryCache.set(cacheKey, cacheKey, mockCacheEntry)
     expect(memoryCache.get(cacheKey, cacheKey)).toEqual(mockCacheEntry)
 
-    memoryCache.delete(cacheKey, cacheKey)
+    memoryCache.delete(cacheKey, `${cacheKey}/${cacheKey}`)
     expect(memoryCache.get(cacheKey, cacheKey)).toBeFalsy()
   })
 
@@ -30,6 +30,9 @@ describe('MemoryCache', () => {
     memoryCache.deleteAllByKeyMatch(cacheKey)
 
     expect(memoryCache.get(cacheKey, cacheKey)).toBeFalsy()
+    expect(memoryCache.get(cacheKey2, cacheKey2)).toEqual(mockCacheEntry)
+
+    memoryCache.deleteAllByKeyMatch(cacheKey2)
     expect(memoryCache.get(cacheKey2, cacheKey2)).toBeFalsy()
   })
 
@@ -48,5 +51,34 @@ describe('MemoryCache', () => {
     expect(memoryCache.get(cacheKey, cacheKey)).toBeNull()
     expect(memoryCache.get(cacheKey2, cacheKey2)).toBeNull()
     expect(memoryCache.get(overLimitedCacheKey, overLimitedCacheKey)).toEqual(mockCacheEntry)
+  })
+
+  it('should revalidate cache by tag', async () => {
+    const mockCacheEntryWithTags = { ...mockCacheEntry, tags: [cacheKey, cacheKey2] }
+    memoryCache.set(cacheKey, cacheKey, mockCacheEntryWithTags)
+    memoryCache.set(cacheKey2, cacheKey2, mockCacheEntryWithTags)
+
+    expect(memoryCache.get(cacheKey, cacheKey)).toEqual(mockCacheEntryWithTags)
+    expect(memoryCache.get(cacheKey2, cacheKey2)).toEqual(mockCacheEntryWithTags)
+
+    await memoryCache.revalidateTag(cacheKey)
+
+    expect(memoryCache.get(cacheKey, cacheKey)).toBeFalsy()
+    expect(memoryCache.get(cacheKey2, cacheKey2)).toBeFalsy()
+  })
+
+  it('should revalidate cache by path', async () => {
+    memoryCache.set(cacheKey, cacheKey, mockCacheEntry)
+    memoryCache.set(cacheKey2, cacheKey2, mockCacheEntry)
+
+    expect(memoryCache.get(cacheKey, cacheKey)).toEqual(mockCacheEntry)
+    expect(memoryCache.get(cacheKey2, cacheKey2)).toEqual(mockCacheEntry)
+
+    await memoryCache.deleteAllByKeyMatch(cacheKey)
+    expect(memoryCache.get(cacheKey, cacheKey)).toBeFalsy()
+    expect(memoryCache.get(cacheKey2, cacheKey2)).toEqual(mockCacheEntry)
+
+    await memoryCache.deleteAllByKeyMatch(cacheKey2)
+    expect(memoryCache.get(cacheKey2, cacheKey2)).toBeFalsy()
   })
 })

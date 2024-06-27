@@ -25,6 +25,7 @@ export interface CacheStrategy {
   get(pageKey: string, cacheKey: string, ctx: CacheContext): Promise<CacheEntry | null>
   set(pageKey: string, cacheKey: string, data: CacheEntry, ctx: CacheContext): Promise<void>
   delete(pageKey: string, cacheKey: string, ctx: CacheContext): Promise<void>
+  revalidateTag(tag: string, ctx: CacheContext): Promise<void>
   deleteAllByKeyMatch(pageKey: string, ctx: CacheContext): Promise<void>
 }
 
@@ -54,4 +55,5 @@ export declare class CacheHandler {
 
   get(pageKey: string, ctx: CacheHandlerContext): Promise<CacheEntry | null>
   set(pageKey: string, data: IncrementalCacheValue | null, ctx: CacheHandlerContext): Promise<void>
+  revalidateTag(tag: string): Promise<void>
 }

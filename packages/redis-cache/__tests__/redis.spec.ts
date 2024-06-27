@@ -14,6 +14,7 @@ export const mockCacheEntry: CacheEntry = {
 }
 
 const store = new Map()
+const mockGetKeys = jest.fn().mockImplementation(() => [...store.keys()])
 const mockReadKey = jest.fn().mockImplementation((path) => store.get(path))
 const mockWriteKey = jest.fn().mockImplementation((path, data) => store.set(path, data))
 const mockDeleteKey = jest.fn().mockImplementation((path) => store.delete(path))
@@ -22,10 +23,11 @@ jest.mock('redis', () => {
   return {
     createClient: jest.fn().mockReturnValue({
       connect: jest.fn(),
+      keys: jest.fn((...params) => mockGetKeys(...params)),
       get: jest.fn((...params) => mockReadKey(...params)),
       set: jest.fn((...params) => mockWriteKey(...params)),
       del: jest.fn((...params) => mockDeleteKey(...params)),
-      scanIterator: jest.fn().mockImplementation(() => store.keys())
+      scan: jest.fn().mockImplementation(() => ({ cursor: 0, keys: store.keys() }))
     })
   }
 })
@@ -44,48 +46,66 @@ describe('RedisCache', () => {
   it('should set and read the cache', async () => {
     await redisCache.set(cacheKey, cacheKey, mockCacheEntry)
     expect(redisCache.client.set).toHaveBeenCalledTimes(1)
-    expect(redisCache.client.set).toHaveBeenCalledWith(cacheKey, JSON.stringify(mockCacheEntry))
+    expect(redisCache.client.set).toHaveBeenCalledWith(`${cacheKey}//${cacheKey}`, JSON.stringify(mockCacheEntry), {})
 
     const result = await redisCache.get(cacheKey, cacheKey)
     expect(result).toEqual(mockCacheEntry)
     expect(redisCache.client.get).toHaveBeenCalledTimes(1)
-    expect(redisCache.client.get).toHaveBeenCalledWith(cacheKey)
+    expect(redisCache.client.get).toHaveBeenCalledWith(`${cacheKey}//${cacheKey}`)
   })
 
   it('should delete cache value', async () => {
     await redisCache.set(cacheKey, cacheKey, mockCacheEntry)
     expect(redisCache.client.set).toHaveBeenCalledTimes(1)
-    expect(redisCache.client.set).toHaveBeenCalledWith(cacheKey, JSON.stringify(mockCacheEntry))
+    expect(redisCache.client.set).toHaveBeenCalledWith(`${cacheKey}//${cacheKey}`, JSON.stringify(mockCacheEntry), {})
 
     const result = await redisCache.get(cacheKey, cacheKey)
     expect(result).toEqual(mockCacheEntry)
     expect(redisCache.client.get).toHaveBeenCalledTimes(1)
-    expect(redisCache.client.get).toHaveBeenCalledWith(cacheKey)
+    expect(redisCache.client.get).toHaveBeenCalledWith(`${cacheKey}//${cacheKey}`)
 
     await redisCache.delete(cacheKey, cacheKey)
     const updatedResult = await redisCache.get(cacheKey, cacheKey)
     expect(updatedResult).toBeNull()
     expect(redisCache.client.del).toHaveBeenCalledTimes(1)
-    expect(redisCache.client.del).toHaveBeenCalledWith(cacheKey)
+    expect(redisCache.client.del).toHaveBeenCalledWith(`${cacheKey}//${cacheKey}`)
   })
 
   it('should delete all cache entries by key match', async () => {
     await redisCache.set(cacheKey, cacheKey, mockCacheEntry)
-    await redisCache.set(cacheKey2, cacheKey2, mockCacheEntry)
 
     const result1 = await redisCache.get(cacheKey, cacheKey)
-    const result2 = await redisCache.get(cacheKey2, cacheKey2)
     expect(result1).toEqual(mockCacheEntry)
-    expect(result2).toEqual(mockCacheEntry)
 
     await redisCache.deleteAllByKeyMatch(cacheKey)
-    expect(redisCache.client.del).toHaveBeenCalledTimes(2)
-    expect(redisCache.client.del).toHaveBeenNthCalledWith(1, cacheKey)
-    expect(redisCache.client.del).toHaveBeenNthCalledWith(2, cacheKey2)
+    expect(redisCache.client.del).toHaveBeenCalledTimes(1)
+    expect(redisCache.client.del).toHaveBeenNthCalledWith(1, `${cacheKey}//${cacheKey}`)
 
-    const updatedResult1 = await redisCache.get(cacheKey, cacheKey)
-    const updatedResult2 = await redisCache.get(cacheKey2, cacheKey)
-    expect(updatedResult1).toBeNull()
-    expect(updatedResult2).toBeNull()
+    expect(await redisCache.get(cacheKey, cacheKey)).toBeNull()
+  })
+
+  it('should revalidate cache by tag', async () => {
+    const mockCacheEntryWithTags = { ...mockCacheEntry, tags: [cacheKey, cacheKey2] }
+    await redisCache.set(cacheKey, cacheKey, mockCacheEntryWithTags)
+
+    expect(await redisCache.get(cacheKey, cacheKey)).toEqual(mockCacheEntryWithTags)
+
+    await redisCache.revalidateTag(cacheKey)
+    expect(redisCache.client.del).toHaveBeenCalledTimes(1)
+    expect(redisCache.client.del).toHaveBeenNthCalledWith(1, `${cacheKey}//${cacheKey}`)
+
+    expect(await redisCache.get(cacheKey, cacheKey)).toBeNull()
+  })
+
+  it('should revalidate cache by path', async () => {
+    await redisCache.set(cacheKey, cacheKey, mockCacheEntry)
+
+    expect(await redisCache.get(cacheKey, cacheKey)).toEqual(mockCacheEntry)
+
+    await redisCache.deleteAllByKeyMatch(cacheKey)
+    expect(redisCache.client.del).toHaveBeenCalledTimes(1)
+    expect(redisCache.client.del).toHaveBeenNthCalledWith(1, `${cacheKey}//${cacheKey}`)
+
+    expect(await redisCache.get(cacheKey, cacheKey)).toBeNull()
   })
 })

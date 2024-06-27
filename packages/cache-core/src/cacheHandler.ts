@@ -2,6 +2,7 @@ import path from 'path'
 import cookieParser from 'cookie'
 import parser from 'ua-parser-js'
 import { pathToRegexp, Path } from 'path-to-regexp'
+import { NEXT_CACHE_IMPLICIT_TAG_ID } from 'next/dist/lib/constants'
 import type {
   CacheHandler,
   BaseLogger,
@@ -94,7 +95,7 @@ export class Cache implements CacheHandler {
   }
 
   getPageCacheKey(pageKey: string) {
-    return [pageKey.replace('/', ''), this.pageCacheKey].filter(Boolean).join('-')
+    return [pageKey.split('/').at(-1), this.pageCacheKey].filter(Boolean).join('-')
   }
 
   checkIsStaleCache(pageData: CacheEntry) {
@@ -109,6 +110,10 @@ export class Cache implements CacheHandler {
     return !Cache.noCacheMatchers.some((matcher) => matcher.exec(pageKey))
   }
 
+  removeSlashFromStart(value: string) {
+    return value.replace('/', '')
+  }
+
   async get(pageKey: string): Promise<CacheEntry | null> {
     try {
       if (!this.checkIsPathToCache(pageKey)) {
@@ -117,7 +122,7 @@ export class Cache implements CacheHandler {
 
       Cache.logger.info(`Reading cache data for ${pageKey}`)
 
-      const data = await Cache.cache.get(pageKey, this.getPageCacheKey(pageKey), {
+      const data = await Cache.cache.get(pageKey.replace('/', ''), this.getPageCacheKey(pageKey), {
         serverCacheDirPath: this.serverCacheDirPath
       })
 
@@ -147,13 +152,13 @@ export class Cache implements CacheHandler {
       if (!data) {
         try {
           Cache.logger.info(`Deleting cache data for ${pageKey}`)
-          await Cache.cache.delete(pageKey, this.getPageCacheKey(pageKey), context)
+          await Cache.cache.delete(this.removeSlashFromStart(pageKey), this.getPageCacheKey(pageKey), context)
         } catch (err) {
           Cache.logger.error(`Failed to delete cache data for ${pageKey}`, err)
         }
       } else {
         await Cache.cache.set(
-          pageKey,
+          this.removeSlashFromStart(pageKey),
           this.getPageCacheKey(pageKey),
           {
             value: data,
@@ -166,6 +171,26 @@ export class Cache implements CacheHandler {
       }
     } catch (err) {
       Cache.logger.error(`Failed to write cache for ${pageKey}`, err)
+    }
+  }
+
+  async revalidateTag(tag: string) {
+    try {
+      if (tag.startsWith(NEXT_CACHE_IMPLICIT_TAG_ID)) {
+        const path = tag.slice(NEXT_CACHE_IMPLICIT_TAG_ID.length)
+        Cache.logger.info(`Revalidate by path ${path}`)
+        await Cache.cache.deleteAllByKeyMatch(path, {
+          serverCacheDirPath: this.serverCacheDirPath
+        })
+      } else {
+        Cache.logger.info(`Revalidate by tag ${tag}`)
+        await Cache.cache.revalidateTag(tag, {
+          serverCacheDirPath: this.serverCacheDirPath
+        })
+      }
+    } catch (err) {
+      Cache.logger.error(`Failed revalidate by ${tag}`, err)
+      return
     }
   }
 

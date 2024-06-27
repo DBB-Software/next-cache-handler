@@ -1,3 +1,4 @@
+import { NEXT_CACHE_IMPLICIT_TAG_ID, NEXT_CACHE_TAGS_HEADER } from 'next/dist/lib/constants'
 import type { CacheEntry, CacheStrategy } from '@dbbs/next-cache-handler-common'
 
 const mapCache = new Map()
@@ -32,14 +33,28 @@ export class MemoryCache implements CacheStrategy {
     this.#totalSize = shouldClearCache ? currentEntrySize : finalSize
   }
 
-  get(_pageKey: string, cacheKey: string) {
-    const data = mapCache.get(cacheKey)
+  get(pageKey: string, cacheKey: string) {
+    const data = mapCache.get(`${pageKey}/${cacheKey}`)
     return data ? JSON.parse(data) : null
   }
 
-  async set(_pageKey: string, cacheKey: string, data: CacheEntry) {
+  async set(pageKey: string, cacheKey: string, data: CacheEntry) {
     this.#setAndValidateTotalSize(data)
-    mapCache.set(cacheKey, JSON.stringify(data))
+    mapCache.set(`${pageKey}/${cacheKey}`, JSON.stringify(data))
+  }
+
+  async revalidateTag(tag: string): Promise<void> {
+    for (const cacheKey of [...mapCache.keys()]) {
+      const pageData: CacheEntry = JSON.parse(mapCache.get(cacheKey))
+      if (
+        pageData?.tags?.includes(tag) ||
+        (pageData?.value?.kind === 'PAGE' &&
+          pageData.value?.headers?.[NEXT_CACHE_TAGS_HEADER]?.toString()?.split(',').includes(tag))
+      ) {
+        await this.delete('', cacheKey)
+      }
+    }
+    return
   }
 
   async delete(_pageKey: string, cacheKey: string) {
@@ -50,9 +65,13 @@ export class MemoryCache implements CacheStrategy {
   }
 
   async deleteAllByKeyMatch(pageKey: string) {
-    const allKeys = [...mapCache.keys()]
+    const allKeys: string[] = [...mapCache.keys()]
 
-    allKeys.forEach((cacheKey) => {
+    const relatedKeys = allKeys.filter(
+      (key) => key.startsWith(pageKey) && key.replace(`${pageKey}/`, '').split('/').length === 1
+    )
+
+    relatedKeys.forEach((cacheKey) => {
       if (cacheKey.startsWith(pageKey)) {
         this.delete(pageKey, cacheKey)
       }
