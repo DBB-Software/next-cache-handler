@@ -6,6 +6,7 @@ const mockGetData = jest.fn()
 const mockSetData = jest.fn()
 const mockDeleteData = jest.fn()
 const mockRevalidateTagData = jest.fn()
+const mockDeleteAllByKeyMatchData = jest.fn()
 
 jest.mock('../src/strategies/fileSystem', () => {
   return {
@@ -13,7 +14,8 @@ jest.mock('../src/strategies/fileSystem', () => {
       get: jest.fn((...params) => mockGetData(...params)),
       set: jest.fn((...params) => mockSetData(...params)),
       delete: jest.fn((...params) => mockDeleteData(...params)),
-      revalidateTag: jest.fn((...params) => mockRevalidateTagData(...params))
+      revalidateTag: jest.fn((...params) => mockRevalidateTagData(...params)),
+      deleteAllByKeyMatch: jest.fn((...params) => mockDeleteAllByKeyMatchData(...params))
     }))
   }
 })
@@ -362,12 +364,12 @@ describe('CacheHandler', () => {
     expect(mockLogger.info).toHaveBeenNthCalledWith(1, `Revalidate by tag ${mockCacheKey}`)
 
     expect(mockLogger.error).toHaveBeenCalledTimes(1)
-    expect(mockLogger.error).toHaveBeenCalledWith(`Failed revalidate by tag ${mockCacheKey}`, errorMessage)
+    expect(mockLogger.error).toHaveBeenCalledWith(`Failed revalidate by ${mockCacheKey}`, errorMessage)
   })
 
   it('should log when failed to revalidate path', async () => {
     const errorMessage = 'error revalidate'
-    mockRevalidateTagData.mockRejectedValueOnce(errorMessage)
+    mockDeleteAllByKeyMatchData.mockRejectedValueOnce(errorMessage)
 
     Cache.setCacheStrategy(new FileSystemCache())
     Cache.setLogger(mockLogger)
@@ -379,6 +381,9 @@ describe('CacheHandler', () => {
     expect(mockLogger.info).toHaveBeenNthCalledWith(1, `Revalidate by path ${mockCacheKey}`)
 
     expect(mockLogger.error).toHaveBeenCalledTimes(1)
-    expect(mockLogger.error).toHaveBeenCalledWith(`Failed revalidate by path ${mockCacheKey}`, errorMessage)
+    expect(mockLogger.error).toHaveBeenCalledWith(
+      `Failed revalidate by ${NEXT_CACHE_IMPLICIT_TAG_ID}${mockCacheKey}`,
+      errorMessage
+    )
   })
 })

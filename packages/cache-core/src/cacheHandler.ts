@@ -175,17 +175,21 @@ export class Cache implements CacheHandler {
   }
 
   async revalidateTag(tag: string) {
-    const mode = tag.startsWith(NEXT_CACHE_IMPLICIT_TAG_ID)
-      ? `path ${tag.slice(NEXT_CACHE_IMPLICIT_TAG_ID.length)}`
-      : `tag ${tag}`
     try {
-      Cache.logger.info(`Revalidate by ${mode}`)
-      await Cache.cache.revalidateTag(tag, {
-        serverCacheDirPath: this.serverCacheDirPath
-      })
-      return
+      if (tag.startsWith(NEXT_CACHE_IMPLICIT_TAG_ID)) {
+        const path = tag.slice(NEXT_CACHE_IMPLICIT_TAG_ID.length)
+        Cache.logger.info(`Revalidate by path ${path}`)
+        await Cache.cache.deleteAllByKeyMatch(path, {
+          serverCacheDirPath: this.serverCacheDirPath
+        })
+      } else {
+        Cache.logger.info(`Revalidate by tag ${tag}`)
+        await Cache.cache.revalidateTag(tag, {
+          serverCacheDirPath: this.serverCacheDirPath
+        })
+      }
     } catch (err) {
-      Cache.logger.error(`Failed revalidate by ${mode}`, err)
+      Cache.logger.error(`Failed revalidate by ${tag}`, err)
       return
     }
   }

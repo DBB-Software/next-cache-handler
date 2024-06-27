@@ -44,13 +44,6 @@ export class MemoryCache implements CacheStrategy {
   }
 
   async revalidateTag(tag: string): Promise<void> {
-    // Revalidate by Path
-    if (tag.startsWith(NEXT_CACHE_IMPLICIT_TAG_ID)) {
-      await this.deleteAllByKeyMatch(tag.slice(NEXT_CACHE_IMPLICIT_TAG_ID.length))
-      return
-    }
-
-    // Revalidate by Tag
     for (const cacheKey of [...mapCache.keys()]) {
       const pageData: CacheEntry = JSON.parse(mapCache.get(cacheKey))
       if (

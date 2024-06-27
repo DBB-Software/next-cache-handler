@@ -23,13 +23,6 @@ export class RedisCache implements CacheStrategy {
   }
 
   async revalidateTag(tag: string): Promise<void> {
-    // Revalidate by Path
-    if (tag.startsWith(NEXT_CACHE_IMPLICIT_TAG_ID)) {
-      await this.deleteAllByKeyMatch(tag.slice(NEXT_CACHE_IMPLICIT_TAG_ID.length))
-      return
-    }
-
-    // Revalidate by Tag
     let cursor = 0
     do {
       const { cursor: currentCursor, keys } = await this.client.scan(0, { MATCH: '*', COUNT: 100 })

@@ -1,4 +1,3 @@
-import { NEXT_CACHE_IMPLICIT_TAG_ID } from 'next/dist/lib/constants'
 import { MemoryCache } from '../src'
 import { mockCacheEntry } from './mocks'
 
@@ -75,11 +74,11 @@ describe('MemoryCache', () => {
     expect(memoryCache.get(cacheKey, cacheKey)).toEqual(mockCacheEntry)
     expect(memoryCache.get(cacheKey2, cacheKey2)).toEqual(mockCacheEntry)
 
-    await memoryCache.revalidateTag(`${NEXT_CACHE_IMPLICIT_TAG_ID}${cacheKey}`)
+    await memoryCache.deleteAllByKeyMatch(cacheKey)
     expect(memoryCache.get(cacheKey, cacheKey)).toBeFalsy()
     expect(memoryCache.get(cacheKey2, cacheKey2)).toEqual(mockCacheEntry)
 
-    await memoryCache.revalidateTag(`${NEXT_CACHE_IMPLICIT_TAG_ID}${cacheKey2}`)
+    await memoryCache.deleteAllByKeyMatch(cacheKey2)
     expect(memoryCache.get(cacheKey2, cacheKey2)).toBeFalsy()
   })
 })

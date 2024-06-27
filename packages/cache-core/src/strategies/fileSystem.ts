@@ -29,13 +29,6 @@ export class FileSystemCache implements CacheStrategy {
   async revalidateTag(tag: string, ctx: CacheContext): Promise<void> {
     if (!existsSync(ctx.serverCacheDirPath)) return
 
-    // Revalidate by Path
-    if (tag.startsWith(NEXT_CACHE_IMPLICIT_TAG_ID)) {
-      await this.deleteAllByKeyMatch(tag.slice(NEXT_CACHE_IMPLICIT_TAG_ID.length), ctx)
-      return
-    }
-
-    // Revalidate by Tag
     const recursiveDelete = async (initPath: string = '') => {
       const cacheDir = await fs.readdir(initPath, { withFileTypes: true })
       for (const cacheItem of cacheDir) {
@@ -65,6 +58,8 @@ export class FileSystemCache implements CacheStrategy {
   }
 
   async deleteAllByKeyMatch(pageKey: string, ctx: CacheContext) {
+    if (!existsSync(ctx.serverCacheDirPath)) return
+
     const pathToCacheFolder = path.join(ctx.serverCacheDirPath, pageKey)
     if (!existsSync(pathToCacheFolder)) return
 

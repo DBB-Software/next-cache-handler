@@ -1,4 +1,3 @@
-import { NEXT_CACHE_IMPLICIT_TAG_ID } from 'next/dist/lib/constants'
 import { CacheEntry } from '@dbbs/next-cache-handler-common'
 import { S3Cache } from '../src'
 
@@ -138,7 +137,7 @@ describe('S3Cache', () => {
 
     expect(await s3Cache.get(cacheKey, cacheKey)).toEqual(mockCacheEntry)
 
-    await s3Cache.revalidateTag(`${NEXT_CACHE_IMPLICIT_TAG_ID}${cacheKey}`)
+    await s3Cache.deleteAllByKeyMatch(cacheKey)
     expect(await s3Cache.get(cacheKey, cacheKey)).toBeNull()
   })
 })

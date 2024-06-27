@@ -1,4 +1,3 @@
-import { NEXT_CACHE_IMPLICIT_TAG_ID } from 'next/dist/lib/constants'
 import { FileSystemCache } from '../src/'
 import { mockCacheEntry, mockCacheStrategyContext } from './mocks'
 
@@ -121,7 +120,7 @@ describe('FileSystemCache', () => {
     expect(mockReadFile).toHaveBeenCalledTimes(1)
     expect(mockReadFile).toHaveBeenCalledWith(cacheFilePath, 'utf-8')
 
-    await fileSystemCache.revalidateTag(`${NEXT_CACHE_IMPLICIT_TAG_ID}${cacheKey}`, mockCacheStrategyContext)
+    await fileSystemCache.deleteAllByKeyMatch(cacheKey, mockCacheStrategyContext)
     const updatedResult = await fileSystemCache.get(cacheKey, cacheKey, mockCacheStrategyContext)
     expect(updatedResult).toBeNull()
   })

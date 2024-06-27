@@ -1,6 +1,5 @@
 import { CacheEntry } from '@dbbs/next-cache-handler-common'
 import { RedisCache } from '../src'
-import { NEXT_CACHE_IMPLICIT_TAG_ID } from 'next/dist/lib/constants'
 
 export const mockCacheEntry: CacheEntry = {
   value: {
@@ -103,7 +102,7 @@ describe('RedisCache', () => {
 
     expect(await redisCache.get(cacheKey, cacheKey)).toEqual(mockCacheEntry)
 
-    await redisCache.revalidateTag(`${NEXT_CACHE_IMPLICIT_TAG_ID}${cacheKey}`)
+    await redisCache.deleteAllByKeyMatch(cacheKey)
     expect(redisCache.client.del).toHaveBeenCalledTimes(1)
     expect(redisCache.client.del).toHaveBeenNthCalledWith(1, `${cacheKey}//${cacheKey}`)
 

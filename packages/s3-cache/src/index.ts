@@ -1,4 +1,4 @@
-import { NEXT_CACHE_IMPLICIT_TAG_ID, NEXT_CACHE_TAGS_HEADER } from 'next/dist/lib/constants'
+import { NEXT_CACHE_TAGS_HEADER } from 'next/dist/lib/constants'
 import { ListObjectsV2CommandOutput, S3 } from '@aws-sdk/client-s3'
 import { getAWSCredentials, type CacheEntry, type CacheStrategy } from '@dbbs/next-cache-handler-common'
 
@@ -53,13 +53,6 @@ export class S3Cache implements CacheStrategy {
   }
 
   async revalidateTag(tag: string): Promise<void> {
-    // Revalidate by Path
-    if (tag.startsWith(NEXT_CACHE_IMPLICIT_TAG_ID)) {
-      await this.deleteAllByKeyMatch(tag.slice(NEXT_CACHE_IMPLICIT_TAG_ID.length))
-      return
-    }
-
-    // Revalidate by Tag
     let nextContinuationToken: string | undefined = undefined
     do {
       const { Contents: contents = [], NextContinuationToken: token }: ListObjectsV2CommandOutput =
