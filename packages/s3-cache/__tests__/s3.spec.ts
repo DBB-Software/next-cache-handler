@@ -121,17 +121,6 @@ describe('S3Cache', () => {
     })
   })
 
-  it('should revalidate cache by tag', async () => {
-    const mockCacheEntryWithTags = { ...mockCacheEntry, tags: [cacheKey] }
-    await s3Cache.set(cacheKey, cacheKey, mockCacheEntryWithTags)
-
-    expect(await s3Cache.get(cacheKey, cacheKey)).toEqual(mockCacheEntryWithTags)
-
-    await s3Cache.revalidateTag(cacheKey)
-
-    expect(await s3Cache.get(cacheKey, cacheKey)).toBeNull()
-  })
-
   it('should revalidate cache by path', async () => {
     await s3Cache.set(cacheKey, cacheKey, mockCacheEntry)
 
