@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/ban-ts-comment */
 import { NEXT_CACHE_IMPLICIT_TAG_ID } from 'next/dist/lib/constants'
 import { CacheEntry } from '@dbbs/next-cache-handler-common'
 import { S3Cache } from '../src'
@@ -30,7 +29,6 @@ const mockPutObject = jest
 const mockDeleteObject = jest.fn().mockImplementation(async ({ Key }) => store.delete(Key))
 const mockGetObjectList = jest
   .fn()
-  // @ts-ignore
   .mockImplementation(async () => ({ Contents: [...store.keys()].map((key) => ({ Key: key })) }))
 
 jest.mock('@dbbs/next-cache-handler-common', () => ({

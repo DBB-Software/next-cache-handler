@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/ban-ts-comment */
 import { NEXT_CACHE_IMPLICIT_TAG_ID } from 'next/dist/lib/constants'
 import { FileSystemCache } from '../src/'
 import { mockCacheEntry, mockCacheStrategyContext } from './mocks'
@@ -13,12 +12,10 @@ const store = new Map()
 const mockReadFile = jest.fn().mockImplementation((path) => store.get(path))
 const mockWriteFile = jest.fn().mockImplementation((path, data) => store.set(path, data))
 const mockRm = jest.fn().mockImplementation((path) => {
-  // @ts-ignore
   ;[...store.keys()].filter((key) => key.startsWith(path)).forEach((path) => store.delete(path))
 })
 
 const mockReaddir = jest.fn().mockImplementation((path: string, option) =>
-  // @ts-ignore
   [...store.keys()].map((k) => {
     if (option) {
       const name = k.replace(`${path}/`, '').split('/')[0]

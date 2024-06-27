@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/ban-ts-comment */
 import { CacheEntry } from '@dbbs/next-cache-handler-common'
 import { RedisCache } from '../src'
 import { NEXT_CACHE_IMPLICIT_TAG_ID } from 'next/dist/lib/constants'
@@ -16,7 +15,6 @@ export const mockCacheEntry: CacheEntry = {
 }
 
 const store = new Map()
-// @ts-ignore
 const mockGetKeys = jest.fn().mockImplementation(() => [...store.keys()])
 const mockReadKey = jest.fn().mockImplementation((path) => store.get(path))
 const mockWriteKey = jest.fn().mockImplementation((path, data) => store.set(path, data))
