@@ -1,4 +1,4 @@
-import { NEXT_CACHE_IMPLICIT_TAG_ID, NEXT_CACHE_TAGS_HEADER } from 'next/dist/lib/constants'
+import { TAGS_REGEX, getTagsFromFileName } from '@dbbs/next-cache-handler-common'
 import type { CacheEntry, CacheStrategy } from '@dbbs/next-cache-handler-common'
 
 const mapCache = new Map()
@@ -34,7 +34,8 @@ export class MemoryCache implements CacheStrategy {
   }
 
   get(pageKey: string, cacheKey: string) {
-    const data = mapCache.get(`${pageKey}/${cacheKey}`)
+    const key = [...mapCache.keys()].find((k: string) => k.replace(TAGS_REGEX, '').endsWith(cacheKey))
+    const data = mapCache.get(key)
     return data ? JSON.parse(data) : null
   }
 
@@ -44,13 +45,8 @@ export class MemoryCache implements CacheStrategy {
   }
 
   async revalidateTag(tag: string): Promise<void> {
-    for (const cacheKey of [...mapCache.keys()]) {
-      const pageData: CacheEntry = JSON.parse(mapCache.get(cacheKey))
-      if (
-        pageData?.tags?.includes(tag) ||
-        (pageData?.value?.kind === 'PAGE' &&
-          pageData.value?.headers?.[NEXT_CACHE_TAGS_HEADER]?.toString()?.split(',').includes(tag))
-      ) {
+    for (const cacheKey of [...mapCache.keys()] as string[]) {
+      if (getTagsFromFileName(cacheKey).includes(tag)) {
         await this.delete('', cacheKey)
       }
     }

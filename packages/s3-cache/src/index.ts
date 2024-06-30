@@ -1,4 +1,5 @@
 import { ListObjectsV2CommandOutput, S3 } from '@aws-sdk/client-s3'
+import { TAGS_REGEX } from '@dbbs/next-cache-handler-common'
 import { getAWSCredentials, type CacheEntry, type CacheStrategy } from '@dbbs/next-cache-handler-common'
 
 const TAGS_SEPARATOR = ','
@@ -22,19 +23,33 @@ export class S3Cache implements CacheStrategy {
   async get(pageKey: string, cacheKey: string): Promise<CacheEntry | null> {
     if (!this.client) return null
 
-    const pageData = await this.client
-      .getObject({
-        Bucket: this.bucketName,
-        Key: `${pageKey}/${cacheKey}.json`
-      })
-      .catch((error) => {
-        if (NOT_FOUND_ERROR.includes(error.name)) return null
-        throw error
-      })
+    let nextContinuationToken: string | undefined = undefined
+    do {
+      const { Contents: contents = [], NextContinuationToken: token }: ListObjectsV2CommandOutput =
+        await this.client.listObjectsV2({
+          Bucket: this.bucketName,
+          ContinuationToken: nextContinuationToken,
+          Prefix: `${pageKey}/`,
+          Delimiter: '/'
+        })
+      nextContinuationToken = token
 
-    if (!pageData?.Body) return null
+      for (const { Key: key } of contents) {
+        console.log('(key?.replace', key?.replace(TAGS_REGEX, ''), `${cacheKey}.json`)
+        if (key?.replace(TAGS_REGEX, '') === `${pageKey}/${cacheKey}.json`) {
+          console.log('read', key)
+          const pageData = await this.client.getObject({ Bucket: this.bucketName, Key: key }).catch((error) => {
+            if (NOT_FOUND_ERROR.includes(error.name)) return null
+            throw error
+          })
 
-    return JSON.parse(await pageData.Body.transformToString('utf-8'))
+          if (!pageData?.Body) return null
+
+          return JSON.parse(await pageData.Body.transformToString('utf-8'))
+        }
+      }
+    } while (nextContinuationToken)
+    return null
   }
 
   async set(pageKey: string, cacheKey: string, data: CacheEntry): Promise<void> {

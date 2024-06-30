@@ -1,20 +1,25 @@
 import fs from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import path from 'node:path'
-import { NEXT_CACHE_IMPLICIT_TAG_ID, NEXT_CACHE_TAGS_HEADER } from 'next/dist/lib/constants'
+import { TAGS_REGEX, getTagsFromFileName } from '@dbbs/next-cache-handler-common'
 import type { CacheStrategy, CacheEntry, CacheContext } from '@dbbs/next-cache-handler-common'
 
 export class FileSystemCache implements CacheStrategy {
   async get(pageKey: string, cacheKey: string, ctx: CacheContext): Promise<CacheEntry | null> {
-    const pathToCacheFile = path.join(ctx.serverCacheDirPath, pageKey, `${cacheKey}.json`)
+    const pathToCacheDir = path.join(ctx.serverCacheDirPath, pageKey)
+    if (!existsSync(pathToCacheDir)) return null
 
-    if (!existsSync(pathToCacheFile)) return null
+    const cacheDir = await fs.readdir(pathToCacheDir, { withFileTypes: true })
+    for (const cacheItem of cacheDir) {
+      if (cacheItem.name.replace(TAGS_REGEX, '') === `${cacheKey}.json`) {
+        const data = await fs.readFile(path.join(cacheItem.path, cacheItem.name), 'utf-8')
+        if (!data) return null
 
-    const data = await fs.readFile(pathToCacheFile, 'utf-8')
+        return JSON.parse(data)
+      }
+    }
 
-    if (!data) return null
-
-    return JSON.parse(data)
+    return null
   }
 
   async set(pageKey: string, cacheKey: string, data: CacheEntry, ctx: CacheContext): Promise<void> {
@@ -38,13 +43,7 @@ export class FileSystemCache implements CacheStrategy {
           continue
         }
 
-        const data = await fs.readFile(pathToItem, 'utf-8')
-        const pageData: CacheEntry = JSON.parse(data)
-        if (
-          pageData?.tags?.includes(tag) ||
-          (pageData.value?.kind === 'PAGE' &&
-            pageData.value.headers?.[NEXT_CACHE_TAGS_HEADER]?.toString()?.split(',').includes(tag))
-        ) {
+        if (getTagsFromFileName(cacheItem.name).includes(tag)) {
           await fs.rm(pathToItem)
         }
       }
@@ -60,7 +59,7 @@ export class FileSystemCache implements CacheStrategy {
   async deleteAllByKeyMatch(pageKey: string, ctx: CacheContext) {
     if (!existsSync(ctx.serverCacheDirPath)) return
 
-    const pathToCacheFolder = path.join(ctx.serverCacheDirPath, pageKey)
+    const pathToCacheFolder = path.join(ctx.serverCacheDirPath, ...pageKey.split('/'))
     if (!existsSync(pathToCacheFolder)) return
 
     const cacheDir = await fs.readdir(pathToCacheFolder, { withFileTypes: true })

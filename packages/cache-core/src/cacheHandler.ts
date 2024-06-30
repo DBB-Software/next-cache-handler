@@ -2,7 +2,7 @@ import path from 'path'
 import cookieParser from 'cookie'
 import parser from 'ua-parser-js'
 import { pathToRegexp, Path } from 'path-to-regexp'
-import { NEXT_CACHE_IMPLICIT_TAG_ID } from 'next/dist/lib/constants'
+import { NEXT_CACHE_IMPLICIT_TAG_ID, NEXT_CACHE_TAGS_HEADER } from 'next/dist/lib/constants'
 import type {
   CacheHandler,
   BaseLogger,
@@ -52,6 +52,12 @@ export class Cache implements CacheHandler {
     }
   }
 
+  buildTagsCacheKey(tags?: string | string[]) {
+    if (!tags || (Array.isArray(tags) && !tags.length)) return ''
+    const regex = new RegExp(`${NEXT_CACHE_IMPLICIT_TAG_ID}\\/|\\/`, 'g')
+    return `tags(${Array.isArray(tags) ? tags.join(',') : tags})`.replace(regex, NEXT_CACHE_IMPLICIT_TAG_ID)
+  }
+
   buildCacheKey(keys: string[], data: Record<string, string>, prefix: string) {
     if (!keys.length) return ''
 
@@ -94,8 +100,8 @@ export class Cache implements CacheHandler {
     return [this.device, this.cookieCacheKey, this.queryCacheKey].filter(Boolean).join('-')
   }
 
-  getPageCacheKey(pageKey: string) {
-    return [pageKey.split('/').at(-1), this.pageCacheKey].filter(Boolean).join('-')
+  getPageCacheKey(pageKey: string, tagsKey?: string) {
+    return [pageKey.split('/').at(-1), this.pageCacheKey, tagsKey].filter(Boolean).join('-')
   }
 
   checkIsStaleCache(pageData: CacheEntry) {
@@ -159,7 +165,10 @@ export class Cache implements CacheHandler {
       } else {
         await Cache.cache.set(
           this.removeSlashFromStart(pageKey),
-          this.getPageCacheKey(pageKey),
+          this.getPageCacheKey(
+            pageKey,
+            this.buildTagsCacheKey(data.kind === 'PAGE' ? data.headers?.[NEXT_CACHE_TAGS_HEADER]?.toString() : ctx.tags)
+          ),
           {
             value: data,
             lastModified: Date.now(),

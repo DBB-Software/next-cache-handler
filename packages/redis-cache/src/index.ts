@@ -1,5 +1,5 @@
-import { NEXT_CACHE_IMPLICIT_TAG_ID, NEXT_CACHE_TAGS_HEADER } from 'next/dist/lib/constants'
 import { createClient, RedisClientType, RedisClientOptions } from 'redis'
+import { TAGS_REGEX, getTagsFromFileName } from '@dbbs/next-cache-handler-common'
 import type { CacheEntry, CacheStrategy } from '@dbbs/next-cache-handler-common'
 
 export class RedisCache implements CacheStrategy {
@@ -11,9 +11,19 @@ export class RedisCache implements CacheStrategy {
   }
 
   async get(pageKey: string, cacheKey: string): Promise<CacheEntry | null> {
-    const pageData = await this.client.get(`${pageKey}//${cacheKey}`)
-    if (!pageData) return null
-    return JSON.parse(pageData)
+    let cursor = 0
+    do {
+      const result = await this.client.scan(0, { MATCH: `${pageKey}//${cacheKey}*`, COUNT: 100 })
+      cursor = result.cursor
+      for await (const key of result.keys) {
+        if (key.replace(TAGS_REGEX, '') === `${pageKey}//${cacheKey}`) {
+          const pageData = await this.client.get(key)
+          if (!pageData) return null
+          return JSON.parse(pageData)
+        }
+      }
+    } while (cursor != 0)
+    return null
   }
 
   async set(pageKey: string, cacheKey: string, data: CacheEntry): Promise<void> {
@@ -28,15 +38,7 @@ export class RedisCache implements CacheStrategy {
       const { cursor: currentCursor, keys } = await this.client.scan(0, { MATCH: '*', COUNT: 100 })
       cursor = currentCursor
       for (const cacheKey of keys) {
-        const data = await this.client.get(cacheKey)
-        if (!data) continue
-
-        const pageData: CacheEntry | null = JSON.parse(data)
-        if (
-          pageData?.tags?.includes(tag) ||
-          (pageData?.value?.kind === 'PAGE' &&
-            pageData.value?.headers?.[NEXT_CACHE_TAGS_HEADER]?.toString()?.split(',').includes(tag))
-        ) {
+        if (getTagsFromFileName(cacheKey).includes(tag)) {
           await this.client.del(cacheKey)
         }
       }
