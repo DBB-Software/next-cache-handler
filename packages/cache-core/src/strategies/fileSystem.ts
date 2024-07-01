@@ -60,7 +60,7 @@ export class FileSystemCache implements CacheStrategy {
   async deleteAllByKeyMatch(pageKey: string, ctx: CacheContext) {
     if (!existsSync(ctx.serverCacheDirPath)) return
 
-    const pathToCacheFolder = path.join(ctx.serverCacheDirPath, pageKey)
+    const pathToCacheFolder = path.join(ctx.serverCacheDirPath, ...pageKey)
     if (!existsSync(pathToCacheFolder)) return
 
     const cacheDir = await fs.readdir(pathToCacheFolder, { withFileTypes: true })
