@@ -1,7 +1,7 @@
 import fs from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import path from 'node:path'
-import { NEXT_CACHE_IMPLICIT_TAG_ID, NEXT_CACHE_TAGS_HEADER } from 'next/dist/lib/constants'
+import { NEXT_CACHE_TAGS_HEADER } from 'next/dist/lib/constants'
 import type { CacheStrategy, CacheEntry, CacheContext } from '@dbbs/next-cache-handler-common'
 
 export class FileSystemCache implements CacheStrategy {
