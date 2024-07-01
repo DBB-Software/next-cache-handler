@@ -41,7 +41,9 @@ export class S3Cache implements CacheStrategy {
     const input = {
       Bucket: this.bucketName,
       Key: `${pageKey}/${cacheKey}`,
-      ...(data.tags?.length ? { Metadata: { tags: data.tags.join(TAGS_SEPARATOR) } } : {})
+      ...(data.tags?.length
+        ? { Metadata: { tags: data.tags.join(TAGS_SEPARATOR) }, Tagging: `tags=${data.tags.join(TAGS_SEPARATOR)}` }
+        : {})
     }
 
     if (data.value?.kind === 'PAGE') {
@@ -61,8 +63,32 @@ export class S3Cache implements CacheStrategy {
     })
   }
 
-  async revalidateTag(): Promise<void> {
-    // TODO add revalidate tag functionality for s3
+  async revalidateTag(tag: string): Promise<void> {
+    let nextContinuationToken: string | undefined = undefined
+    do {
+      const { Contents: contents = [], NextContinuationToken: token }: ListObjectsV2CommandOutput =
+        await this.client.listObjectsV2({
+          Bucket: this.bucketName,
+          ContinuationToken: nextContinuationToken
+        })
+      nextContinuationToken = token
+
+      for (const { Key: key } of contents) {
+        if (!key) continue
+
+        const args = { Bucket: this.bucketName, Key: key }
+        const { TagSet = [] } = await this.client.getObjectTagging(args)
+
+        const { Value: tags = '' } = TagSet.find(({ Key: key }) => key === 'tags') || {}
+        if (!!tags && tags.split(TAGS_SEPARATOR).includes(tag)) {
+          const lastSlashIndex = key.lastIndexOf('/')
+          await this.delete(
+            key.substring(0, lastSlashIndex),
+            key.substring(lastSlashIndex + 1).replace(/\.json$|\.html$/, '')
+          )
+        }
+      }
+    } while (nextContinuationToken)
     return
   }
 
