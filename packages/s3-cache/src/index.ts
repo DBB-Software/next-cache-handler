@@ -1,7 +1,8 @@
+import { NEXT_CACHE_TAGS_HEADER } from 'next/dist/lib/constants'
 import { ListObjectsV2CommandOutput, S3 } from '@aws-sdk/client-s3'
 import { getAWSCredentials, type CacheEntry, type CacheStrategy } from '@dbbs/next-cache-handler-common'
 
-const TAGS_SEPARATOR = ','
+const TAG_PREFIX = 'revalidateTag'
 const NOT_FOUND_ERROR = ['NotFound', 'NoSuchKey']
 
 export class S3Cache implements CacheStrategy {
@@ -17,6 +18,11 @@ export class S3Cache implements CacheStrategy {
       this.client.config.credentials = credentials as unknown as S3['config']['credentials']
     })
     this.bucketName = bucketName
+  }
+
+  buildTagKeys(tags?: string | string[]) {
+    if (!tags || (Array.isArray(tags) && !tags.length)) return ''
+    return (Array.isArray(tags) ? tags : tags.split(',')).map((tag, index) => `${TAG_PREFIX}${index}=${tag}`).join('&')
   }
 
   async get(pageKey: string, cacheKey: string): Promise<CacheEntry | null> {
@@ -38,28 +44,34 @@ export class S3Cache implements CacheStrategy {
   }
 
   async set(pageKey: string, cacheKey: string, data: CacheEntry): Promise<void> {
-    const input = {
+    const baseInput = {
       Bucket: this.bucketName,
-      Key: `${pageKey}/${cacheKey}`,
-      ...(data.tags?.length
-        ? { Metadata: { tags: data.tags.join(TAGS_SEPARATOR) }, Tagging: `tags=${data.tags.join(TAGS_SEPARATOR)}` }
-        : {})
+      Key: `${pageKey}/${cacheKey}`
     }
 
     if (data.value?.kind === 'PAGE') {
+      const headersTags = this.buildTagKeys(data.value.headers?.[NEXT_CACHE_TAGS_HEADER]?.toString())
+      const input = { ...baseInput, ...(headersTags ? { Tagging: headersTags } : {}) }
       await this.client.putObject({
         ...input,
         Key: `${input.Key}.html`,
         Body: data.value.html,
         ContentType: 'text/html'
       })
+      await this.client.putObject({
+        ...input,
+        Key: `${input.Key}.json`,
+        Body: JSON.stringify(data)
+      })
+      return
     }
 
     await this.client.putObject({
-      ...input,
-      Key: `${input.Key}.json`,
+      ...baseInput,
+      Key: `${baseInput.Key}.json`,
       Body: JSON.stringify(data),
-      ContentType: 'application/json'
+      ContentType: 'application/json',
+      ...(data.tags?.length ? { Tagging: `${this.buildTagKeys(data.tags)}` } : {})
     })
   }
 
@@ -79,13 +91,12 @@ export class S3Cache implements CacheStrategy {
         const args = { Bucket: this.bucketName, Key: key }
         const { TagSet = [] } = await this.client.getObjectTagging(args)
 
-        const { Value: tags = '' } = TagSet.find(({ Key: key }) => key === 'tags') || {}
-        if (!!tags && tags.split(TAGS_SEPARATOR).includes(tag)) {
-          const lastSlashIndex = key.lastIndexOf('/')
-          await this.delete(
-            key.substring(0, lastSlashIndex),
-            key.substring(lastSlashIndex + 1).replace(/\.json$|\.html$/, '')
-          )
+        const tags = TagSet.filter(({ Key: key }) => key?.startsWith('revalidateTag')).map(
+          ({ Value: tags }) => tags || ''
+        )
+
+        if (tags.includes(tag)) {
+          await this.client.deleteObject(args)
         }
       }
     } while (nextContinuationToken)
