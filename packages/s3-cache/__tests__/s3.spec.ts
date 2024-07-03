@@ -15,6 +15,10 @@ export const mockCacheEntry: CacheEntry = {
   lastModified: 100000
 }
 
+const mockBucketName = 'test-bucket'
+const cacheKey = 'test'
+const s3Cache = new S3Cache(mockBucketName)
+
 const store = new Map()
 const mockGetObject = jest.fn().mockImplementation(async ({ Key }) => {
   const res = store.get(Key)
@@ -29,6 +33,9 @@ const mockDeleteObject = jest.fn().mockImplementation(async ({ Key }) => store.d
 const mockGetObjectList = jest
   .fn()
   .mockImplementation(async () => ({ Contents: [...store.keys()].map((key) => ({ Key: key })) }))
+const mockGetObjectTagging = jest
+  .fn()
+  .mockImplementation(() => ({ TagSet: [{ Key: 'revalidateTag0', Value: cacheKey }] }))
 
 jest.mock('@dbbs/next-cache-handler-common', () => ({
   ...jest.requireActual('@dbbs/next-cache-handler-common'),
@@ -45,14 +52,11 @@ jest.mock('@aws-sdk/client-s3', () => {
       putObject: jest.fn((...params) => mockPutObject(...params)),
       deleteObject: jest.fn((...params) => mockDeleteObject(...params)),
       listObjectsV2: jest.fn((...params) => mockGetObjectList(...params)),
+      getObjectTagging: jest.fn((...params) => mockGetObjectTagging(...params)),
       config: {}
     })
   }
 })
-
-const mockBucketName = 'test-bucket'
-const cacheKey = 'test'
-const s3Cache = new S3Cache(mockBucketName)
 
 describe('S3Cache', () => {
   afterEach(() => {
@@ -123,6 +127,17 @@ describe('S3Cache', () => {
       Bucket: mockBucketName,
       Key: `${cacheKey}/${cacheKey}.html`
     })
+  })
+
+  it('should revalidate cache by tag', async () => {
+    const mockCacheEntryWithTags = { ...mockCacheEntry, tags: [cacheKey] }
+    await s3Cache.set(cacheKey, cacheKey, mockCacheEntryWithTags)
+
+    expect(await s3Cache.get(cacheKey, cacheKey)).toEqual(mockCacheEntryWithTags)
+
+    await s3Cache.revalidateTag(cacheKey)
+
+    expect(await s3Cache.get(cacheKey, cacheKey)).toBeNull()
   })
 
   it('should revalidate cache by path', async () => {
