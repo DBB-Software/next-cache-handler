@@ -1,4 +1,4 @@
-import { NEXT_CACHE_IMPLICIT_TAG_ID, NEXT_CACHE_TAGS_HEADER } from 'next/dist/lib/constants'
+import { NEXT_CACHE_TAGS_HEADER } from 'next/dist/lib/constants'
 import { createClient, RedisClientType, RedisClientOptions } from 'redis'
 import type { CacheEntry, CacheStrategy } from '@dbbs/next-cache-handler-common'
 
