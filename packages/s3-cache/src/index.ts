@@ -91,9 +91,7 @@ export class S3Cache implements CacheStrategy {
         const args = { Bucket: this.bucketName, Key: key }
         const { TagSet = [] } = await this.client.getObjectTagging(args)
 
-        const tags = TagSet.filter(({ Key: key }) => key?.startsWith('revalidateTag')).map(
-          ({ Value: tags }) => tags || ''
-        )
+        const tags = TagSet.filter(({ Key: key }) => key?.startsWith(TAG_PREFIX)).map(({ Value: tags }) => tags || '')
 
         if (tags.includes(tag)) {
           await this.client.deleteObject(args)
