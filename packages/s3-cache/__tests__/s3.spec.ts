@@ -30,6 +30,11 @@ const mockPutObject = jest
   .fn()
   .mockImplementation(async ({ Key, Body, Metadata }) => store.set(Key, { Body, Metadata }))
 const mockDeleteObject = jest.fn().mockImplementation(async ({ Key }) => store.delete(Key))
+const mockDeleteObjects = jest
+  .fn()
+  .mockImplementation(async ({ Delete: { Objects } }: { Delete: { Objects: { Key: string }[] } }) =>
+    Objects.forEach(({ Key }) => store.delete(Key))
+  )
 const mockGetObjectList = jest
   .fn()
   .mockImplementation(async () => ({ Contents: [...store.keys()].map((key) => ({ Key: key })) }))
@@ -51,6 +56,7 @@ jest.mock('@aws-sdk/client-s3', () => {
       getObject: jest.fn((...params) => mockGetObject(...params)),
       putObject: jest.fn((...params) => mockPutObject(...params)),
       deleteObject: jest.fn((...params) => mockDeleteObject(...params)),
+      deleteObjects: jest.fn((...params) => mockDeleteObjects(...params)),
       listObjectsV2: jest.fn((...params) => mockGetObjectList(...params)),
       getObjectTagging: jest.fn((...params) => mockGetObjectTagging(...params)),
       config: {}
@@ -118,14 +124,10 @@ describe('S3Cache', () => {
     await s3Cache.delete(cacheKey, cacheKey)
     const updatedResult = await s3Cache.get(cacheKey, cacheKey)
     expect(updatedResult).toBeNull()
-    expect(s3Cache.client.deleteObject).toHaveBeenCalledTimes(2)
-    expect(s3Cache.client.deleteObject).toHaveBeenNthCalledWith(1, {
+    expect(s3Cache.client.deleteObjects).toHaveBeenCalledTimes(1)
+    expect(s3Cache.client.deleteObjects).toHaveBeenNthCalledWith(1, {
       Bucket: mockBucketName,
-      Key: `${cacheKey}/${cacheKey}.json`
-    })
-    expect(s3Cache.client.deleteObject).toHaveBeenNthCalledWith(2, {
-      Bucket: mockBucketName,
-      Key: `${cacheKey}/${cacheKey}.html`
+      Delete: { Objects: [{ Key: `${cacheKey}/${cacheKey}.json` }, { Key: `${cacheKey}/${cacheKey}.html` }] }
     })
   })
 
