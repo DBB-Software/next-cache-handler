@@ -21,6 +21,7 @@
     "rules": {
         "semi": ["error", "never"],
         "@typescript-eslint/no-explicit-any": "warn",
+        "@typescript-eslint/no-unused-vars": "error",
         "quotes": ["error", "single"],
         "prettier/prettier": [
             "error",
