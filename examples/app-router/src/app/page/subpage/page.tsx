@@ -10,9 +10,8 @@ const getTitle = async () => {
 
 export default async function Home() {
   const title = await getTitle()
-  const buildTime = new Date()
 
-  return <TestPage title={title} buildTime={buildTime.toString()} />
+  return <TestPage title={title} buildTime={Date.now()} expireTime={Date.now() + 60 * 1000} />
 }
 
 export const revalidate = 60

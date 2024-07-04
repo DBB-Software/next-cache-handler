@@ -2,10 +2,11 @@ import { FC } from 'react'
 
 type TestPageProps = {
   title: string
-  buildTime: string
+  buildTime: number
+  expireTime?: number
 }
 
-export const TestPage: FC<TestPageProps> = ({ title, buildTime }) => (
+export const TestPage: FC<TestPageProps> = ({ title, buildTime, expireTime }) => (
   <div style={{ display: 'flex', height: '100vh', flexDirection: 'column', margin: '-8px' }}>
     <div style={{ background: 'gray', padding: '20px', display: 'flex', gap: '20px' }}>
       <a href="/">Home</a>
@@ -21,8 +22,9 @@ export const TestPage: FC<TestPageProps> = ({ title, buildTime }) => (
       </h2>
       <p>{title}</p>
     </div>
-    <div style={{ background: 'gray', padding: '20px', display: 'flex', gap: '20px' }}>
-      <span>Build Time: {buildTime.toString()}</span>
+    <div style={{ background: 'gray', padding: '20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+      <span>Build Time: {new Date(buildTime).toString()}</span>
+      {!!expireTime && <span>Expire Time: {new Date(expireTime).toString()}</span>}
     </div>
   </div>
 )
