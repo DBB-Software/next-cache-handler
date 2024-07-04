@@ -1,7 +1,7 @@
-import { TestPage } from './../components/TestPage'
+import { TestPage } from './../../../components/TestPage'
 
 const getTitle = async () => {
-  const res = await fetch('http://localhost:3000/api', { next: { tags: ['index'] } })
+  const res = await fetch('http://localhost:3000/api', { next: { tags: ['subpage'] } })
     .then((r) => r.json())
     .catch(() => ({ title: 'Pregenerated page data.' }))
 
