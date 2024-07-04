@@ -1,4 +1,4 @@
-import { TestPage } from '../components/TestPage'
+import { TestPage } from '../../../components/TestPage'
 
 export const getStaticProps = async () => {
   const res = await fetch('http://localhost:3000/api')

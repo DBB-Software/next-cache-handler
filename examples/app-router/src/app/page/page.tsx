@@ -15,4 +15,4 @@ export default async function Home() {
   return <TestPage title={title} buildTime={buildTime.toString()} />
 }
 
-export const revalidate = 15
+export const revalidate = 60
