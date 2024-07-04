@@ -111,7 +111,7 @@ export class Cache implements CacheHandler {
   }
 
   removeSlashFromStart(value: string) {
-    return value.replace('/', '')
+    return value.startsWith('/') ? value.substring(1) : value
   }
 
   async get(pageKey: string): Promise<CacheEntry | null> {
