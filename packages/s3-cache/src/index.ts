@@ -1,6 +1,6 @@
 import { NEXT_CACHE_TAGS_HEADER } from 'next/dist/lib/constants'
 import { ListObjectsV2CommandOutput, S3 } from '@aws-sdk/client-s3'
-import { getAWSCredentials, type CacheEntry, type CacheStrategy } from '@dbbs/next-cache-handler-common'
+import { getAWSCredentials, type CacheEntry, type CacheStrategy, chunkArray } from '@dbbs/next-cache-handler-common'
 
 const TAG_PREFIX = 'revalidateTag'
 const NOT_FOUND_ERROR = ['NotFound', 'NoSuchKey']
@@ -9,6 +9,7 @@ enum CacheExtension {
   HTML = 'html'
 }
 const PAGE_CACHE_EXTENSIONS = Object.values(CacheExtension)
+const CHUNK_LIMIT = 1000
 
 export class S3Cache implements CacheStrategy {
   public readonly client: S3
@@ -28,6 +29,14 @@ export class S3Cache implements CacheStrategy {
   buildTagKeys(tags?: string | string[]) {
     if (!tags?.length) return ''
     return (Array.isArray(tags) ? tags : tags.split(',')).map((tag, index) => `${TAG_PREFIX}${index}=${tag}`).join('&')
+  }
+
+  async deleteObjects(keysToDelete: string[]) {
+    await Promise.allSettled(
+      chunkArray(keysToDelete, CHUNK_LIMIT).map((chunk) =>
+        this.client.deleteObjects({ Bucket: this.bucketName, Delete: { Objects: chunk.map((Key) => ({ Key })) } })
+      )
+    )
   }
 
   async get(pageKey: string, cacheKey: string): Promise<CacheEntry | null> {
@@ -82,6 +91,7 @@ export class S3Cache implements CacheStrategy {
   }
 
   async revalidateTag(tag: string): Promise<void> {
+    const keysToDelete: string[] = []
     let nextContinuationToken: string | undefined = undefined
     do {
       const { Contents: contents = [], NextContinuationToken: token }: ListObjectsV2CommandOutput =
@@ -91,23 +101,22 @@ export class S3Cache implements CacheStrategy {
         })
       nextContinuationToken = token
 
-      const keyToDelete = await contents.reduce<Promise<string[]>>(async (acc, { Key: key }) => {
-        if (!key) return acc
+      keysToDelete.push(
+        ...(await contents.reduce<Promise<string[]>>(async (acc, { Key: key }) => {
+          if (!key) return acc
 
-        const { TagSet = [] } = await this.client.getObjectTagging({ Bucket: this.bucketName, Key: key })
-        const tags = TagSet.filter(({ Key: key }) => key?.startsWith(TAG_PREFIX)).map(({ Value: tags }) => tags || '')
+          const { TagSet = [] } = await this.client.getObjectTagging({ Bucket: this.bucketName, Key: key })
+          const tags = TagSet.filter(({ Key: key }) => key?.startsWith(TAG_PREFIX)).map(({ Value: tags }) => tags || '')
 
-        if (tags.includes(tag)) {
-          return [...(await acc), key]
-        }
-        return acc
-      }, Promise.resolve([]))
-
-      await this.client.deleteObjects({
-        Bucket: this.bucketName,
-        Delete: { Objects: keyToDelete.map((Key) => ({ Key })) }
-      })
+          if (tags.includes(tag)) {
+            return [...(await acc), key]
+          }
+          return acc
+        }, Promise.resolve([])))
+      )
     } while (nextContinuationToken)
+
+    await this.deleteObjects(keysToDelete)
     return
   }
 
@@ -119,6 +128,7 @@ export class S3Cache implements CacheStrategy {
   }
 
   async deleteAllByKeyMatch(pageKey: string): Promise<void> {
+    const keysToDelete: string[] = []
     let nextContinuationToken: string | undefined = undefined
     do {
       const { Contents: contents = [], NextContinuationToken: token }: ListObjectsV2CommandOutput =
@@ -130,16 +140,15 @@ export class S3Cache implements CacheStrategy {
         })
       nextContinuationToken = token
 
-      const keyToDelete = contents.reduce<string[]>(
-        (acc, { Key: key = '' }) => (PAGE_CACHE_EXTENSIONS.some((ext) => key.endsWith(ext)) ? [...acc, key] : acc),
-        []
+      keysToDelete.push(
+        ...contents.reduce<string[]>(
+          (acc, { Key: key = '' }) => (PAGE_CACHE_EXTENSIONS.some((ext) => key.endsWith(ext)) ? [...acc, key] : acc),
+          []
+        )
       )
-
-      await this.client.deleteObjects({
-        Bucket: this.bucketName,
-        Delete: { Objects: keyToDelete.map((Key) => ({ Key })) }
-      })
     } while (nextContinuationToken)
+
+    await this.deleteObjects(keysToDelete)
     return
   }
 }
