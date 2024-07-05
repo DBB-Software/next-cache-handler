@@ -111,7 +111,7 @@ export class Cache implements CacheHandler {
   }
 
   removeSlashFromStart(value: string) {
-    return value.replace('/', '')
+    return value.startsWith('/') ? value.substring(1) : value
   }
 
   async get(pageKey: string): Promise<CacheEntry | null> {
@@ -179,7 +179,8 @@ export class Cache implements CacheHandler {
       if (tag.startsWith(NEXT_CACHE_IMPLICIT_TAG_ID)) {
         const path = tag.slice(NEXT_CACHE_IMPLICIT_TAG_ID.length)
         Cache.logger.info(`Revalidate by path ${path}`)
-        await Cache.cache.deleteAllByKeyMatch(path, {
+        const pageKey = this.removeSlashFromStart(path)
+        await Cache.cache.deleteAllByKeyMatch(!pageKey.length ? 'index' : pageKey, {
           serverCacheDirPath: this.serverCacheDirPath
         })
       } else {

@@ -15,6 +15,10 @@ export const mockCacheEntry: CacheEntry = {
   lastModified: 100000
 }
 
+const mockBucketName = 'test-bucket'
+const cacheKey = 'test'
+const s3Cache = new S3Cache(mockBucketName)
+
 const store = new Map()
 const mockGetObject = jest.fn().mockImplementation(async ({ Key }) => {
   const res = store.get(Key)
@@ -26,9 +30,17 @@ const mockPutObject = jest
   .fn()
   .mockImplementation(async ({ Key, Body, Metadata }) => store.set(Key, { Body, Metadata }))
 const mockDeleteObject = jest.fn().mockImplementation(async ({ Key }) => store.delete(Key))
+const mockDeleteObjects = jest
+  .fn()
+  .mockImplementation(async ({ Delete: { Objects } }: { Delete: { Objects: { Key: string }[] } }) =>
+    Objects.forEach(({ Key }) => store.delete(Key))
+  )
 const mockGetObjectList = jest
   .fn()
   .mockImplementation(async () => ({ Contents: [...store.keys()].map((key) => ({ Key: key })) }))
+const mockGetObjectTagging = jest
+  .fn()
+  .mockImplementation(() => ({ TagSet: [{ Key: 'revalidateTag0', Value: cacheKey }] }))
 
 jest.mock('@dbbs/next-cache-handler-common', () => ({
   ...jest.requireActual('@dbbs/next-cache-handler-common'),
@@ -44,15 +56,13 @@ jest.mock('@aws-sdk/client-s3', () => {
       getObject: jest.fn((...params) => mockGetObject(...params)),
       putObject: jest.fn((...params) => mockPutObject(...params)),
       deleteObject: jest.fn((...params) => mockDeleteObject(...params)),
+      deleteObjects: jest.fn((...params) => mockDeleteObjects(...params)),
       listObjectsV2: jest.fn((...params) => mockGetObjectList(...params)),
+      getObjectTagging: jest.fn((...params) => mockGetObjectTagging(...params)),
       config: {}
     })
   }
 })
-
-const mockBucketName = 'test-bucket'
-const cacheKey = 'test'
-const s3Cache = new S3Cache(mockBucketName)
 
 describe('S3Cache', () => {
   afterEach(() => {
@@ -114,15 +124,22 @@ describe('S3Cache', () => {
     await s3Cache.delete(cacheKey, cacheKey)
     const updatedResult = await s3Cache.get(cacheKey, cacheKey)
     expect(updatedResult).toBeNull()
-    expect(s3Cache.client.deleteObject).toHaveBeenCalledTimes(2)
-    expect(s3Cache.client.deleteObject).toHaveBeenNthCalledWith(1, {
+    expect(s3Cache.client.deleteObjects).toHaveBeenCalledTimes(1)
+    expect(s3Cache.client.deleteObjects).toHaveBeenNthCalledWith(1, {
       Bucket: mockBucketName,
-      Key: `${cacheKey}/${cacheKey}.json`
+      Delete: { Objects: [{ Key: `${cacheKey}/${cacheKey}.json` }, { Key: `${cacheKey}/${cacheKey}.html` }] }
     })
-    expect(s3Cache.client.deleteObject).toHaveBeenNthCalledWith(2, {
-      Bucket: mockBucketName,
-      Key: `${cacheKey}/${cacheKey}.html`
-    })
+  })
+
+  it('should revalidate cache by tag', async () => {
+    const mockCacheEntryWithTags = { ...mockCacheEntry, tags: [cacheKey] }
+    await s3Cache.set(cacheKey, cacheKey, mockCacheEntryWithTags)
+
+    expect(await s3Cache.get(cacheKey, cacheKey)).toEqual(mockCacheEntryWithTags)
+
+    await s3Cache.revalidateTag(cacheKey)
+
+    expect(await s3Cache.get(cacheKey, cacheKey)).toBeNull()
   })
 
   it('should revalidate cache by path', async () => {
