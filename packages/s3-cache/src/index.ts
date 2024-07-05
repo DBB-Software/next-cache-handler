@@ -80,7 +80,6 @@ export class S3Cache implements CacheStrategy {
   async deleteAllByKeyMatch(pageKey: string): Promise<void> {
     let nextContinuationToken: string | undefined = undefined
     do {
-      this.client.deleteObjects
       const { Contents: contents = [], NextContinuationToken: token }: ListObjectsV2CommandOutput =
         await this.client.listObjectsV2({
           Bucket: this.bucketName,
