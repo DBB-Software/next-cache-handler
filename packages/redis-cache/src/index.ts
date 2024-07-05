@@ -1,6 +1,9 @@
 import { NEXT_CACHE_TAGS_HEADER } from 'next/dist/lib/constants'
 import { createClient, RedisClientType, RedisClientOptions } from 'redis'
 import type { CacheEntry, CacheStrategy } from '@dbbs/next-cache-handler-common'
+import { chunkArray } from '@dbbs/next-cache-handler-common'
+
+const CHUNK_LIMIT = 100
 
 export class RedisCache implements CacheStrategy {
   client: RedisClientType<any, any, any>
@@ -8,6 +11,10 @@ export class RedisCache implements CacheStrategy {
   constructor(options: RedisClientOptions) {
     this.client = createClient(options)
     this.client.connect()
+  }
+
+  async deleteObjects(keysToDelete: string[]) {
+    await Promise.allSettled(chunkArray(keysToDelete, CHUNK_LIMIT).map((chunk) => this.client.del(chunk)))
   }
 
   async get(pageKey: string, cacheKey: string): Promise<CacheEntry | null> {
@@ -23,24 +30,30 @@ export class RedisCache implements CacheStrategy {
   }
 
   async revalidateTag(tag: string): Promise<void> {
+    const keysToDelete: string[] = []
     let cursor = 0
     do {
-      const { cursor: currentCursor, keys } = await this.client.scan(0, { MATCH: '*', COUNT: 100 })
+      const { cursor: currentCursor, keys } = await this.client.scan(cursor, { MATCH: '*', COUNT: CHUNK_LIMIT })
       cursor = currentCursor
-      for (const cacheKey of keys) {
-        const data = await this.client.get(cacheKey)
-        if (!data) continue
 
-        const pageData: CacheEntry | null = JSON.parse(data)
-        if (
-          pageData?.tags?.includes(tag) ||
-          (pageData?.value?.kind === 'PAGE' &&
-            pageData.value?.headers?.[NEXT_CACHE_TAGS_HEADER]?.toString()?.split(',').includes(tag))
-        ) {
-          await this.client.del(cacheKey)
-        }
-      }
+      keysToDelete.push(
+        ...(await [...keys].reduce<Promise<string[]>>(async (acc, key) => {
+          const data = await this.client.get(key)
+          if (!data) return acc
+
+          const pageData: CacheEntry | null = JSON.parse(data)
+          if (
+            pageData?.tags?.includes(tag) ||
+            (pageData?.value?.kind === 'PAGE' &&
+              pageData.value?.headers?.[NEXT_CACHE_TAGS_HEADER]?.toString()?.split(',').includes(tag))
+          ) {
+            return [...(await acc), key]
+          }
+          return acc
+        }, Promise.resolve([])))
+      )
     } while (cursor)
+    await this.deleteObjects(keysToDelete)
     return
   }
 
@@ -49,13 +62,14 @@ export class RedisCache implements CacheStrategy {
   }
 
   async deleteAllByKeyMatch(key: string): Promise<void> {
+    const keysToDelete: string[] = []
     let cursor = 0
     do {
-      const result = await this.client.scan(0, { MATCH: `${key}//*`, COUNT: 100 })
+      const result = await this.client.scan(cursor, { MATCH: `${key}//*`, COUNT: CHUNK_LIMIT })
       cursor = result.cursor
-      for await (const cacheKey of result.keys) {
-        await this.client.del(cacheKey)
-      }
+      keysToDelete.push(...result.keys)
     } while (cursor != 0)
+    await this.deleteObjects(keysToDelete)
+    return
   }
 }

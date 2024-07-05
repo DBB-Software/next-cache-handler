@@ -17,7 +17,13 @@ const store = new Map()
 const mockGetKeys = jest.fn().mockImplementation(() => [...store.keys()])
 const mockReadKey = jest.fn().mockImplementation((path) => store.get(path))
 const mockWriteKey = jest.fn().mockImplementation((path, data) => store.set(path, data))
-const mockDeleteKey = jest.fn().mockImplementation((path) => store.delete(path))
+const mockDeleteKey = jest.fn().mockImplementation((path) => {
+  if (Array.isArray(path)) {
+    path.forEach((key) => store.delete(key))
+  } else {
+    store.delete(path)
+  }
+})
 
 jest.mock('redis', () => {
   return {
@@ -79,7 +85,7 @@ describe('RedisCache', () => {
 
     await redisCache.deleteAllByKeyMatch(cacheKey)
     expect(redisCache.client.del).toHaveBeenCalledTimes(1)
-    expect(redisCache.client.del).toHaveBeenNthCalledWith(1, `${cacheKey}//${cacheKey}`)
+    expect(redisCache.client.del).toHaveBeenNthCalledWith(1, [`${cacheKey}//${cacheKey}`])
 
     expect(await redisCache.get(cacheKey, cacheKey)).toBeNull()
   })
@@ -92,7 +98,7 @@ describe('RedisCache', () => {
 
     await redisCache.revalidateTag(cacheKey)
     expect(redisCache.client.del).toHaveBeenCalledTimes(1)
-    expect(redisCache.client.del).toHaveBeenNthCalledWith(1, `${cacheKey}//${cacheKey}`)
+    expect(redisCache.client.del).toHaveBeenNthCalledWith(1, [`${cacheKey}//${cacheKey}`])
 
     expect(await redisCache.get(cacheKey, cacheKey)).toBeNull()
   })
@@ -104,7 +110,7 @@ describe('RedisCache', () => {
 
     await redisCache.deleteAllByKeyMatch(cacheKey)
     expect(redisCache.client.del).toHaveBeenCalledTimes(1)
-    expect(redisCache.client.del).toHaveBeenNthCalledWith(1, `${cacheKey}//${cacheKey}`)
+    expect(redisCache.client.del).toHaveBeenNthCalledWith(1, [`${cacheKey}//${cacheKey}`])
 
     expect(await redisCache.get(cacheKey, cacheKey)).toBeNull()
   })
