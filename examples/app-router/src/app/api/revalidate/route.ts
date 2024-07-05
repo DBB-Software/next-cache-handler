@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic'
 export async function GET(req: NextRequest) {
   try {
     const parsedUrl = new URL(req.url)
-    const pathToRevalidate = parsedUrl.searchParams.get('query')
+    const pathToRevalidate = parsedUrl.searchParams.get('path')
     const tagToRevalidate = parsedUrl.searchParams.get('tag')
 
     if (pathToRevalidate) {
