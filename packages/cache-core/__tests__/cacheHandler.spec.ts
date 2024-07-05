@@ -125,10 +125,10 @@ describe('CacheHandler', () => {
     'should handle cache $description',
     async ({ cacheCookie, cacheQuery, cacheStrategy, addDeviceSplit, overrideHeaders, expectedCacheSuffix }) => {
       if (cacheCookie) {
-        Cache.addCookie(cacheCookie)
+        Cache.addCookies([cacheCookie])
       }
       if (cacheQuery) {
-        Cache.addQuery(cacheQuery)
+        Cache.addQueries([cacheQuery])
       }
       Cache.enableDeviceSplit = addDeviceSplit
       Cache.setCacheStrategy(cacheStrategy)
