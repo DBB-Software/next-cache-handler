@@ -76,7 +76,7 @@ export class S3Cache implements CacheStrategy {
         ...input,
         Key: `${input.Key}.${CacheExtension.JSON}`,
         Body: JSON.stringify(data),
-        ContentType: 'application/json',
+        ContentType: 'application/json'
       })
       return
     }
