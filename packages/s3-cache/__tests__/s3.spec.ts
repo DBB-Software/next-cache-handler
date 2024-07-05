@@ -68,12 +68,14 @@ describe('S3Cache', () => {
     expect(s3Cache.client.putObject).toHaveBeenNthCalledWith(1, {
       Bucket: mockBucketName,
       Key: `${cacheKey}/${cacheKey}.html`,
-      Body: mockHtmlPage
+      Body: mockHtmlPage,
+      ContentType: 'text/html'
     })
     expect(s3Cache.client.putObject).toHaveBeenNthCalledWith(2, {
       Bucket: mockBucketName,
       Key: `${cacheKey}/${cacheKey}.json`,
-      Body: JSON.stringify(mockCacheEntry)
+      Body: JSON.stringify(mockCacheEntry),
+      ContentType: 'application/json'
     })
 
     const result = await s3Cache.get(cacheKey, cacheKey)
@@ -91,12 +93,14 @@ describe('S3Cache', () => {
     expect(s3Cache.client.putObject).toHaveBeenNthCalledWith(1, {
       Bucket: mockBucketName,
       Key: `${cacheKey}/${cacheKey}.html`,
-      Body: mockHtmlPage
+      Body: mockHtmlPage,
+      ContentType: 'text/html'
     })
     expect(s3Cache.client.putObject).toHaveBeenNthCalledWith(2, {
       Bucket: mockBucketName,
       Key: `${cacheKey}/${cacheKey}.json`,
-      Body: JSON.stringify(mockCacheEntry)
+      Body: JSON.stringify(mockCacheEntry),
+      ContentType: 'application/json'
     })
 
     const result = await s3Cache.get(cacheKey, cacheKey)

@@ -45,10 +45,20 @@ export class S3Cache implements CacheStrategy {
     }
 
     if (data.value?.kind === 'PAGE') {
-      await this.client.putObject({ ...input, Key: `${input.Key}.html`, Body: data.value.html })
+      await this.client.putObject({
+        ...input,
+        Key: `${input.Key}.html`,
+        Body: data.value.html,
+        ContentType: 'text/html'
+      })
     }
 
-    await this.client.putObject({ ...input, Key: `${input.Key}.json`, Body: JSON.stringify(data) })
+    await this.client.putObject({
+      ...input,
+      Key: `${input.Key}.json`,
+      Body: JSON.stringify(data),
+      ContentType: 'application/json'
+    })
   }
 
   async revalidateTag(): Promise<void> {
@@ -70,6 +80,7 @@ export class S3Cache implements CacheStrategy {
   async deleteAllByKeyMatch(pageKey: string): Promise<void> {
     let nextContinuationToken: string | undefined = undefined
     do {
+      this.client.deleteObjects
       const { Contents: contents = [], NextContinuationToken: token }: ListObjectsV2CommandOutput =
         await this.client.listObjectsV2({
           Bucket: this.bucketName,
