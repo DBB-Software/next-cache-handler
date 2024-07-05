@@ -8,10 +8,10 @@ const getTitle = async () => {
   return res.title
 }
 
+export const revalidate = 60
+
 export default async function Home() {
   const title = await getTitle()
 
-  return <TestPage title={title} buildTime={Date.now()} expireTime={Date.now() + 60 * 1000} />
+  return <TestPage title={title} buildTime={Date.now()} expireTime={Date.now() + revalidate * 1000} />
 }
-
-export const revalidate = 60
