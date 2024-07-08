@@ -90,6 +90,22 @@ const redisConnectionOpts = {
 
 Cache.setCacheStrategy(new RedisCache(redisConnectionOpts))
 ```
+
+By default, we use plain Redis as the cache store. 
+But you are able to use Redis with RedisJSON and RedisSearch modules as the cache store.
+In that case you need to pass extra params to RedisCache class during initialization.
+```
+import { Cache } from '@dbbs/next-cache-handler-core'
+import { RedisCache, RedisStrategy } from "@dbbs/next-cache-handler-redis"
+
+// list of all accepted redis connection options.
+const redisConnectionOpts = {
+    url: 'redis://localhost:5843',
+    ...
+}
+
+Cache.setCacheStrategy(new RedisCache(redisConnectionOpts, RedisStrategy.RedisStack))))
+```
 - **S3**: Suitable for high scalable applications.
 ```
 import { Cache } from '@dbbs/next-cache-handler-core'
