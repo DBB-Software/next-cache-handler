@@ -40,10 +40,8 @@ import { Cache, FileSystemCache } from '@dbbs/next-cache-handler-core'
 
 Cache
     .setCacheStrategy(new FileSystemCache())
-    .addCookie('my-cookie-1')
-    .addCookie('my-cookie-2')
-    .addQuery('my-query-1')
-    .addQuery('my-query-2')
+    .addCookies(['my-cookie-1','my-cookie-2'])
+    .addQueries(['my-query-1','my-query-2'])
     .addDeviceSplit()
     // Additional configuration...
 export default Cache    
@@ -102,16 +100,16 @@ Cache.setCacheStrategy(new S3Cache('cache-bucket-name'))
 
 ## API Reference
 
-### `addCookie`
-Cookie name what is going to be used to fragmentate cache based on browser cookies session.
+### `addCookies`
+Cookie names what is going to be used to fragmentate cache based on browser cookies session.
 ```
-Cache.addCookie('my-cookie-to-split')
+Cache.addCookies(['my-cookie-to-split'])
 ```
 
-### `addQuery`
-Query name to fragmentate cache based on url query parameters.
+### `addQueries`
+Query names to fragmentate cache based on url query parameters.
 ```
-Cache.addQuery('my-query-to-split')
+Cache.addQueries(['my-query-to-split'])
 ```
 
 ### `addDeviceSplit`

@@ -195,14 +195,14 @@ export class Cache implements CacheHandler {
     }
   }
 
-  static addCookie(value: string) {
-    Cache.cacheCookies.push(value)
+  static addCookies(value: string[]) {
+    Cache.cacheCookies.push(...value)
 
     return this
   }
 
-  static addQuery(value: string) {
-    Cache.cacheQueries.push(value)
+  static addQueries(value: string[]) {
+    Cache.cacheQueries.push(...value)
 
     return this
   }
