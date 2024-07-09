@@ -4,18 +4,25 @@ import { usePathname } from 'next/navigation'
 
 type TestPageProps = {
   title: string
+  date: string
   buildTime: number
   expireTime?: number
 }
 
-export const TestPage: FC<TestPageProps> = ({ title, buildTime, expireTime }) => {
+export const TestPage: FC<TestPageProps> = ({ title, date, buildTime, expireTime }) => {
   const pathname = usePathname()
-
-  const revalidatePathHandler = () => fetch(`/api/revalidate?path=${pathname}`)
 
   const revalidateTagHandler = () => {
     const input = document.getElementById('tag') as HTMLInputElement | null
     if (input?.value) fetch(`/api/revalidate?tag=${input.value}`)
+  }
+  const revalidatePathHandler = () => {
+    const input = document.getElementById('path') as HTMLInputElement | null
+    if (input?.value) {
+      fetch(`/api/revalidate?path=${input.value}`)
+    } else {
+      fetch(`/api/revalidate?path=${pathname}`)
+    }
   }
 
   return (
@@ -32,9 +39,13 @@ export const TestPage: FC<TestPageProps> = ({ title, buildTime, expireTime }) =>
           handler is going to cache and generate data for all combinations of those keys, so if users returns to the
           same key what is already available in cache - he will retrieve cached result
         </h2>
-        <p>{title}</p>
+        <p>Title: {title}</p>
+        <p>Date: {date}</p>
         <div style={{ display: 'flex', gap: '8px', margin: '8px' }}>
-          <button onClick={revalidatePathHandler}>Revalidate this path</button>
+          <button onClick={revalidatePathHandler}>Revalidate by Path</button>
+          <input type="text" id="path" placeholder={pathname} />
+        </div>
+        <div style={{ display: 'flex', gap: '8px', margin: '8px' }}>
           <button onClick={revalidateTagHandler}>Revalidate by Tag</button>
           <input type="text" id="tag" />
         </div>

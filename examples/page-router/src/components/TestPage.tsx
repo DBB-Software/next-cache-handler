@@ -10,7 +10,15 @@ type TestPageProps = {
 export const TestPage: FC<TestPageProps> = ({ title, buildTime, expireTime }) => {
   const { pathname } = useRouter()
 
-  const revalidatePathHandler = () => fetch(`/api/revalidate?path=${pathname}`)
+  const revalidatePathHandler = () => {
+    const input = document.getElementById('path') as HTMLInputElement | null
+    if (input?.value) {
+      fetch(`/api/revalidate?path=${input.value}`)
+    } else {
+      fetch(`/api/revalidate?path=${pathname}`)
+    }
+  }
+
   return (
     <div style={{ display: 'flex', height: '100vh', flexDirection: 'column', margin: '-8px' }}>
       <div style={{ background: 'gray', padding: '20px', display: 'flex', gap: '20px' }}>
@@ -27,7 +35,8 @@ export const TestPage: FC<TestPageProps> = ({ title, buildTime, expireTime }) =>
         </h2>
         <p>{title}</p>
         <div style={{ display: 'flex', gap: '8px', margin: '8px' }}>
-          <button onClick={revalidatePathHandler}>Revalidate this path</button>
+          <button onClick={revalidatePathHandler}>Revalidate by Path</button>
+          <input type="text" id="path" placeholder={pathname} />
         </div>
       </div>
       <div style={{ background: 'gray', padding: '20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
