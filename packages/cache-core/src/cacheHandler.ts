@@ -122,7 +122,7 @@ export class Cache implements CacheHandler {
 
       Cache.logger.info(`Reading cache data for ${pageKey}`)
 
-      const data = await Cache.cache.get(pageKey.replace('/', ''), this.getPageCacheKey(pageKey), {
+      const data = await Cache.cache.get(this.removeSlashFromStart(pageKey), this.getPageCacheKey(pageKey), {
         serverCacheDirPath: this.serverCacheDirPath
       })
 
@@ -130,6 +130,10 @@ export class Cache implements CacheHandler {
       if (!data || this.checkIsStaleCache(data)) {
         Cache.logger.info(`No actual cache found for ${pageKey}`)
         return null
+      }
+
+      if (data.value?.kind === 'ROUTE') {
+        return { ...data, value: { ...data.value, body: Buffer.from(data.value.body as unknown as string, 'base64') } }
       }
 
       return data
@@ -142,7 +146,7 @@ export class Cache implements CacheHandler {
 
   async set(pageKey: string, data: IncrementalCacheValue | null, ctx: CacheHandlerContext): Promise<void> {
     try {
-      if (!this.checkIsPathToCache(pageKey) || ['IMAGE', 'REDIRECT'].includes(data?.kind ?? '')) return
+      if (!this.checkIsPathToCache(pageKey) || ['IMAGE', 'REDIRECT', 'FETCH'].includes(data?.kind ?? '')) return
 
       Cache.logger.info(`Writing cache for ${pageKey}`)
       const context = {

@@ -1,8 +1,8 @@
 import fs from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import path from 'node:path'
-import { NEXT_CACHE_TAGS_HEADER } from 'next/dist/lib/constants'
 import type { CacheStrategy, CacheEntry, CacheContext } from '@dbbs/next-cache-handler-common'
+import { checkHeaderTags } from '@dbbs/next-cache-handler-common'
 
 export class FileSystemCache implements CacheStrategy {
   async get(pageKey: string, cacheKey: string, ctx: CacheContext): Promise<CacheEntry | null> {
@@ -40,11 +40,7 @@ export class FileSystemCache implements CacheStrategy {
 
         const data = await fs.readFile(pathToItem, 'utf-8')
         const pageData: CacheEntry = JSON.parse(data)
-        if (
-          pageData?.tags?.includes(tag) ||
-          (pageData.value?.kind === 'PAGE' &&
-            pageData.value.headers?.[NEXT_CACHE_TAGS_HEADER]?.toString()?.split(',').includes(tag))
-        ) {
+        if (pageData?.tags?.includes(tag) || checkHeaderTags(pageData.value, tag)) {
           await fs.rm(pathToItem)
         }
       }
