@@ -18,7 +18,6 @@ interface RedisJSONObject {
 }
 type RedisJSON = string | number | boolean | null | RedisJSONArray | RedisJSONObject
 const CHUNK_LIMIT = 100
-const NEXT_CACHE_TAG_PREFIX = '_N_T_'
 export class RedisStack implements CacheStrategy {
   client: RedisClientType<RedisDefaultModules & RedisModules, RedisFunctions, RedisScripts>
   constructor(options: RedisClientOptions) {
@@ -54,14 +53,13 @@ export class RedisStack implements CacheStrategy {
     if (!cacheValue) {
       return null
     }
-
     return cacheValue
   }
 
   async set(pageKey: string, cacheKey: string, data: CacheEntry): Promise<void> {
     const headersTags =
       data?.value?.kind === 'PAGE' ? data?.value?.headers?.[NEXT_CACHE_TAGS_HEADER]?.toString()?.split(',') || [] : []
-    const pageTags = headersTags.filter((tag) => !tag.includes(NEXT_CACHE_TAG_PREFIX))
+    const pageTags = headersTags.filter((tag) => !tag.includes(NEXT_CACHE_TAGS_HEADER))
     const tags = [...pageTags, ...(data?.tags || [])]
 
     const cacheData = {

@@ -1,7 +1,6 @@
-import { NEXT_CACHE_TAGS_HEADER } from 'next/dist/lib/constants'
 import { createClient, RedisClientType, RedisClientOptions } from 'redis'
 import type { CacheEntry, CacheStrategy } from '@dbbs/next-cache-handler-common'
-import { chunkArray } from '@dbbs/next-cache-handler-common'
+import { checkHeaderTags, chunkArray } from '@dbbs/next-cache-handler-common'
 
 const CHUNK_LIMIT = 100
 
@@ -42,11 +41,7 @@ export class RedisString implements CacheStrategy {
           if (!data) return acc
 
           const pageData: CacheEntry | null = JSON.parse(data)
-          if (
-            pageData?.tags?.includes(tag) ||
-            (pageData?.value?.kind === 'PAGE' &&
-              pageData.value?.headers?.[NEXT_CACHE_TAGS_HEADER]?.toString()?.split(',').includes(tag))
-          ) {
+          if (pageData?.tags?.includes(tag) || checkHeaderTags(pageData?.value || null, tag)) {
             return [...(await acc), key]
           }
           return acc
