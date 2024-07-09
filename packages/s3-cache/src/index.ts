@@ -63,31 +63,33 @@ export class S3Cache implements CacheStrategy {
       Key: `${pageKey}/${cacheKey}`
     }
 
-    if (data.value?.kind === 'PAGE') {
+    if (data.value?.kind === 'PAGE' || data.value?.kind === 'ROUTE') {
       const headersTags = this.buildTagKeys(data.value.headers?.[NEXT_CACHE_TAGS_HEADER]?.toString())
       const input = { ...baseInput, ...(headersTags ? { Tagging: headersTags } : {}) }
-      await this.client.putObject({
-        ...input,
-        Key: `${input.Key}.${CacheExtension.HTML}`,
-        Body: data.value.html,
-        ContentType: 'text/html'
-      })
+
+      if (data.value?.kind === 'PAGE') {
+        await this.client.putObject({
+          ...input,
+          Key: `${input.Key}.${CacheExtension.HTML}`,
+          Body: data.value.html,
+          ContentType: 'text/html'
+        })
+      }
       await this.client.putObject({
         ...input,
         Key: `${input.Key}.${CacheExtension.JSON}`,
         Body: JSON.stringify(data),
         ContentType: 'application/json'
       })
-      return
+    } else {
+      await this.client.putObject({
+        ...baseInput,
+        Key: `${baseInput.Key}.${CacheExtension.JSON}`,
+        Body: JSON.stringify(data),
+        ContentType: 'application/json',
+        ...(data.tags?.length ? { Tagging: `${this.buildTagKeys(data.tags)}` } : {})
+      })
     }
-
-    await this.client.putObject({
-      ...baseInput,
-      Key: `${baseInput.Key}.${CacheExtension.JSON}`,
-      Body: JSON.stringify(data),
-      ContentType: 'application/json',
-      ...(data.tags?.length ? { Tagging: `${this.buildTagKeys(data.tags)}` } : {})
-    })
   }
 
   async revalidateTag(tag: string): Promise<void> {

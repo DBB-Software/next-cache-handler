@@ -15,8 +15,8 @@ export const TestPage: FC<TestPageProps> = ({ title, buildTime, expireTime }) =>
     <div style={{ display: 'flex', height: '100vh', flexDirection: 'column', margin: '-8px' }}>
       <div style={{ background: 'gray', padding: '20px', display: 'flex', gap: '20px' }}>
         <a href="/">Home</a>
-        <a href="/page">Page</a>
-        <a href="/page/subpage">SubPage</a>
+        <a href="/level">Level</a>
+        <a href="/level/sub-level">Sub-level</a>
       </div>
       <div style={{ flex: '1 1 0%', display: 'flex', flexDirection: 'column', padding: '8px' }}>
         <h1>Welcome to Next Cache Handler</h1>

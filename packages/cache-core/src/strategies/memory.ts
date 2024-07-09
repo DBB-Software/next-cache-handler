@@ -1,5 +1,5 @@
-import { NEXT_CACHE_TAGS_HEADER } from 'next/dist/lib/constants'
 import type { CacheEntry, CacheStrategy } from '@dbbs/next-cache-handler-common'
+import { checkHeaderTags } from '@dbbs/next-cache-handler-common'
 
 const mapCache = new Map()
 
@@ -46,11 +46,7 @@ export class MemoryCache implements CacheStrategy {
   async revalidateTag(tag: string): Promise<void> {
     for (const cacheKey of [...mapCache.keys()]) {
       const pageData: CacheEntry = JSON.parse(mapCache.get(cacheKey))
-      if (
-        pageData?.tags?.includes(tag) ||
-        (pageData?.value?.kind === 'PAGE' &&
-          pageData.value?.headers?.[NEXT_CACHE_TAGS_HEADER]?.toString()?.split(',').includes(tag))
-      ) {
+      if (pageData?.tags?.includes(tag) || checkHeaderTags(pageData.value, tag)) {
         await this.delete('', cacheKey)
       }
     }
