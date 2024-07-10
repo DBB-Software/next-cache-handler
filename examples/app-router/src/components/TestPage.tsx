@@ -1,5 +1,5 @@
 'use client'
-import { FC } from 'react'
+import { FC, useRef } from 'react'
 import { usePathname } from 'next/navigation'
 
 type TestPageProps = {
@@ -10,19 +10,17 @@ type TestPageProps = {
 }
 
 export const TestPage: FC<TestPageProps> = ({ title, date, buildTime, expireTime }) => {
-  const pathname = usePathname()
+  const currentPath = usePathname()
+  const pathRef = useRef<HTMLInputElement>(null)
+  const tagRef = useRef<HTMLInputElement>(null)
 
   const revalidateTagHandler = () => {
-    const input = document.getElementById('tag') as HTMLInputElement | null
-    if (input?.value) fetch(`/api/revalidate?tag=${input.value}`)
+    const tagValue = tagRef?.current?.value
+    if (tagValue) fetch(`/api/revalidate?tag=${tagValue}`)
   }
   const revalidatePathHandler = () => {
-    const input = document.getElementById('path') as HTMLInputElement | null
-    if (input?.value) {
-      fetch(`/api/revalidate?path=${input.value}`)
-    } else {
-      fetch(`/api/revalidate?path=${pathname}`)
-    }
+    const pathValue = pathRef?.current?.value || currentPath
+    fetch(`/api/revalidate?path=${pathValue}`)
   }
 
   return (
@@ -43,11 +41,11 @@ export const TestPage: FC<TestPageProps> = ({ title, date, buildTime, expireTime
         <p>Date: {date}</p>
         <div style={{ display: 'flex', gap: '8px', margin: '8px' }}>
           <button onClick={revalidatePathHandler}>Revalidate by Path</button>
-          <input type="text" id="path" placeholder={pathname} />
+          <input ref={pathRef} type="text" placeholder={currentPath} />
         </div>
         <div style={{ display: 'flex', gap: '8px', margin: '8px' }}>
           <button onClick={revalidateTagHandler}>Revalidate by Tag</button>
-          <input type="text" id="tag" />
+          <input ref={tagRef} type="text" />
         </div>
       </div>
       <div style={{ background: 'gray', padding: '20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
