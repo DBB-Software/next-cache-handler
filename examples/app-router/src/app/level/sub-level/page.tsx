@@ -8,10 +8,19 @@ const getTitle = async () => {
   return res.title
 }
 
+const getDate = async () => {
+  const res = await fetch('http://localhost:3000/api/date', { next: { tags: ['sub-level-date'] } })
+    .then((r) => r.json())
+    .catch(() => ({ date: '-' }))
+
+  return res.date
+}
+
 export const revalidate = 60
 
 export default async function Home() {
   const title = await getTitle()
+  const date = await getDate()
 
-  return <TestPage title={title} buildTime={Date.now()} expireTime={Date.now() + revalidate * 1000} />
+  return <TestPage title={title} date={date} buildTime={Date.now()} expireTime={Date.now() + revalidate * 1000} />
 }
