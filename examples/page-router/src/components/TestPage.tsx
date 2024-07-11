@@ -1,4 +1,4 @@
-import { FC } from 'react'
+import { FC, useRef } from 'react'
 import { useRouter } from 'next/router'
 
 type TestPageProps = {
@@ -8,9 +8,14 @@ type TestPageProps = {
 }
 
 export const TestPage: FC<TestPageProps> = ({ title, buildTime, expireTime }) => {
-  const { pathname } = useRouter()
+  const pathRef = useRef<HTMLInputElement>(null)
+  const { pathname: currentPath } = useRouter()
 
-  const revalidatePathHandler = () => fetch(`/api/revalidate?path=${pathname}`)
+  const revalidatePathHandler = () => {
+    const pathValue = pathRef?.current?.value || currentPath
+    fetch(`/api/revalidate?path=${pathValue}`)
+  }
+
   return (
     <div style={{ display: 'flex', height: '100vh', flexDirection: 'column', margin: '-8px' }}>
       <div style={{ background: 'gray', padding: '20px', display: 'flex', gap: '20px' }}>
@@ -27,7 +32,8 @@ export const TestPage: FC<TestPageProps> = ({ title, buildTime, expireTime }) =>
         </h2>
         <p>{title}</p>
         <div style={{ display: 'flex', gap: '8px', margin: '8px' }}>
-          <button onClick={revalidatePathHandler}>Revalidate this path</button>
+          <button onClick={revalidatePathHandler}>Revalidate by Path</button>
+          <input ref={pathRef} type="text" placeholder={currentPath} />
         </div>
       </div>
       <div style={{ background: 'gray', padding: '20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>

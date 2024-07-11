@@ -1,21 +1,26 @@
 'use client'
-import { FC } from 'react'
+import { FC, useRef } from 'react'
 import { usePathname } from 'next/navigation'
 
 type TestPageProps = {
   title: string
+  date: string
   buildTime: number
   expireTime?: number
 }
 
-export const TestPage: FC<TestPageProps> = ({ title, buildTime, expireTime }) => {
-  const pathname = usePathname()
-
-  const revalidatePathHandler = () => fetch(`/api/revalidate?path=${pathname}`)
+export const TestPage: FC<TestPageProps> = ({ title, date, buildTime, expireTime }) => {
+  const currentPath = usePathname()
+  const pathRef = useRef<HTMLInputElement>(null)
+  const tagRef = useRef<HTMLInputElement>(null)
 
   const revalidateTagHandler = () => {
-    const input = document.getElementById('tag') as HTMLInputElement | null
-    if (input?.value) fetch(`/api/revalidate?tag=${input.value}`)
+    const tagValue = tagRef?.current?.value
+    if (tagValue) fetch(`/api/revalidate?tag=${tagValue}`)
+  }
+  const revalidatePathHandler = () => {
+    const pathValue = pathRef?.current?.value || currentPath
+    fetch(`/api/revalidate?path=${pathValue}`)
   }
 
   return (
@@ -32,11 +37,15 @@ export const TestPage: FC<TestPageProps> = ({ title, buildTime, expireTime }) =>
           handler is going to cache and generate data for all combinations of those keys, so if users returns to the
           same key what is already available in cache - he will retrieve cached result
         </h2>
-        <p>{title}</p>
+        <p>Title: {title}</p>
+        <p>Date: {date}</p>
         <div style={{ display: 'flex', gap: '8px', margin: '8px' }}>
-          <button onClick={revalidatePathHandler}>Revalidate this path</button>
+          <button onClick={revalidatePathHandler}>Revalidate by Path</button>
+          <input ref={pathRef} type="text" placeholder={currentPath} />
+        </div>
+        <div style={{ display: 'flex', gap: '8px', margin: '8px' }}>
           <button onClick={revalidateTagHandler}>Revalidate by Tag</button>
-          <input type="text" id="tag" />
+          <input ref={tagRef} type="text" />
         </div>
       </div>
       <div style={{ background: 'gray', padding: '20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
