@@ -14,6 +14,10 @@ import { chunkArray } from '@dbbs/next-cache-handler-common'
 import { CHUNK_LIMIT, RedisJSON } from './types'
 import { Cache } from '@dbbs/next-cache-handler-core'
 
+function sanitizeTag(str: string) {
+  return str.replace(/[^a-zA-Z0-9]/gi, '_')
+}
+
 export class RedisStack implements CacheStrategy {
   client: RedisClientType<RedisDefaultModules & RedisModules, RedisFunctions, RedisScripts>
   constructor(options: RedisClientOptions) {
@@ -25,7 +29,7 @@ export class RedisStack implements CacheStrategy {
         await this.client.ft.create(
           'idx:tags',
           {
-            '$.tags': { type: SchemaFieldTypes.TEXT, AS: 'tag' }
+            '$.tags[*]': { type: SchemaFieldTypes.TEXT, AS: 'tag' }
           },
           {
             ON: 'JSON'
@@ -61,13 +65,13 @@ export class RedisStack implements CacheStrategy {
       data?.value?.kind === 'PAGE' || data?.value?.kind === 'ROUTE'
         ? data?.value?.headers?.[NEXT_CACHE_TAGS_HEADER]?.toString()?.split(',') || []
         : []
-    const pageTags = headersTags.filter((tag) => !tag.includes(NEXT_CACHE_TAGS_HEADER))
-    const tags = [...pageTags, ...(data?.tags || [])]
+
+    const tags = [...headersTags, ...(data?.tags || [])]
 
     const cacheData = {
       ...data,
       ...(data.revalidate && { EX: Number(data.revalidate) }),
-      tags
+      tags: tags.map(sanitizeTag)
     }
 
     await this.client.json.set(`${pageKey}//${cacheKey}`, '.', cacheData as unknown as RedisJSON)
@@ -76,13 +80,18 @@ export class RedisStack implements CacheStrategy {
   async revalidateTag(tag: string): Promise<void> {
     const keysToDelete: string[] = []
     let from = 0
+    const sanitizedTags = sanitizeTag(tag)
     // eslint-disable-next-line no-constant-condition
     while (true) {
-      const { documents } = await this.client.ft.search('idx:tags', `@tag:{${tag}}`, {
+      const { documents } = await this.client.ft.search('idx:tags', `@tag:${sanitizedTags}`, {
         LIMIT: { from, size: CHUNK_LIMIT }
       })
 
-      documents.forEach(({ id }) => keysToDelete.push(id))
+      documents.forEach(({ id, value: { tags = [] } }) => {
+        if (Array.isArray(tags) && tags?.find((documentTag) => String(documentTag) === sanitizedTags)) {
+          keysToDelete.push(id)
+        }
+      })
 
       if (documents.length < CHUNK_LIMIT) {
         break
@@ -101,7 +110,7 @@ export class RedisStack implements CacheStrategy {
       try {
         await this.client.unlink(validKeysToDelete)
       } catch (error) {
-        console.error('Error deleting keys:', validKeysToDelete, error)
+        Cache.logger.error('Error deleting keys:', validKeysToDelete, error)
       }
     }
     return

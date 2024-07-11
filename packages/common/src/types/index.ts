@@ -26,7 +26,7 @@ export interface CacheStrategy {
   set(pageKey: string, cacheKey: string, data: CacheEntry, ctx: CacheContext): Promise<void>
   delete(pageKey: string, cacheKey: string, ctx: CacheContext): Promise<void>
   revalidateTag(tag: string, ctx: CacheContext): Promise<void>
-  deleteAllByKeyMatch?(pageKey: string, ctx: CacheContext): Promise<void>
+  deleteAllByKeyMatch(pageKey: string, ctx: CacheContext): Promise<void>
 }
 
 export interface CacheHandlerContext {
