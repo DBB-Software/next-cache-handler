@@ -104,16 +104,7 @@ export class RedisStack implements CacheStrategy {
       return
     }
 
-    const validKeysToDelete = keysToDelete.filter((key) => Boolean(key))
-
-    if (validKeysToDelete.length > 0) {
-      try {
-        await this.client.unlink(validKeysToDelete)
-      } catch (error) {
-        Cache.logger.error('Error deleting keys:', validKeysToDelete, error)
-      }
-    }
-    return
+    await this.deleteObjects(keysToDelete)
   }
 
   async delete(pageKey: string, cacheKey: string): Promise<void> {
