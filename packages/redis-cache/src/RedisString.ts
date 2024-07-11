@@ -1,8 +1,8 @@
 import { createClient, RedisClientType, RedisClientOptions } from 'redis'
 import type { CacheEntry, CacheStrategy } from '@dbbs/next-cache-handler-common'
 import { checkHeaderTags, chunkArray } from '@dbbs/next-cache-handler-common'
-
-const CHUNK_LIMIT = 100
+import { CHUNK_LIMIT } from './types'
+import { Cache } from '@dbbs/next-cache-handler-core'
 
 export class RedisString implements CacheStrategy {
   client: RedisClientType<any, any, any>
@@ -57,14 +57,6 @@ export class RedisString implements CacheStrategy {
   }
 
   async deleteAllByKeyMatch(key: string): Promise<void> {
-    const keysToDelete: string[] = []
-    let cursor = 0
-    do {
-      const result = await this.client.scan(cursor, { MATCH: `${key}//*`, COUNT: CHUNK_LIMIT })
-      cursor = result.cursor
-      keysToDelete.push(...result.keys)
-    } while (cursor != 0)
-    await this.deleteObjects(keysToDelete)
-    return
+    Cache.logger.info('deleteAllByKeyMatch is not implemented for RedisStack', key)
   }
 }

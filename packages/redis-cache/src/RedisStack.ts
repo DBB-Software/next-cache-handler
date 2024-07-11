@@ -11,13 +11,9 @@ import {
 } from 'redis'
 import type { CacheEntry, CacheStrategy } from '@dbbs/next-cache-handler-common'
 import { chunkArray } from '@dbbs/next-cache-handler-common'
+import { CHUNK_LIMIT, RedisJSON } from './types'
+import { Cache } from '@dbbs/next-cache-handler-core'
 
-interface RedisJSONArray extends Array<RedisJSON> {}
-interface RedisJSONObject {
-  [key: string]: RedisJSON
-}
-type RedisJSON = string | number | boolean | null | RedisJSONArray | RedisJSONObject
-const CHUNK_LIMIT = 100
 export class RedisStack implements CacheStrategy {
   client: RedisClientType<RedisDefaultModules & RedisModules, RedisFunctions, RedisScripts>
   constructor(options: RedisClientOptions) {
@@ -35,9 +31,13 @@ export class RedisStack implements CacheStrategy {
             ON: 'JSON'
           }
         )
-        console.log('Index created successfully.')
+        Cache.logger.info('Index created successfully.')
       } catch (e) {
-        console.error('Could not create an index for tags', e)
+        if (e instanceof Error && e.message.includes('Index already exists')) {
+          Cache.logger.info('Index already exists. Skipping creation.')
+        } else {
+          Cache.logger.error('Could not create an index for tags', e)
+        }
       }
     }
 
@@ -58,7 +58,9 @@ export class RedisStack implements CacheStrategy {
 
   async set(pageKey: string, cacheKey: string, data: CacheEntry): Promise<void> {
     const headersTags =
-      data?.value?.kind === 'PAGE' ? data?.value?.headers?.[NEXT_CACHE_TAGS_HEADER]?.toString()?.split(',') || [] : []
+      data?.value?.kind === 'PAGE' || data?.value?.kind === 'ROUTE'
+        ? data?.value?.headers?.[NEXT_CACHE_TAGS_HEADER]?.toString()?.split(',') || []
+        : []
     const pageTags = headersTags.filter((tag) => !tag.includes(NEXT_CACHE_TAGS_HEADER))
     const tags = [...pageTags, ...(data?.tags || [])]
 
@@ -76,13 +78,11 @@ export class RedisStack implements CacheStrategy {
     let from = 0
     // eslint-disable-next-line no-constant-condition
     while (true) {
-      const { documents } = await this.client.ft.search('idx:tags', `@tag:"${tag}"`, {
+      const { documents } = await this.client.ft.search('idx:tags', `@tag:{${tag}}`, {
         LIMIT: { from, size: CHUNK_LIMIT }
       })
 
-      for (const { id } of documents) {
-        keysToDelete.push(id)
-      }
+      documents.forEach(({ id }) => keysToDelete.push(id))
 
       if (documents.length < CHUNK_LIMIT) {
         break
@@ -112,14 +112,6 @@ export class RedisStack implements CacheStrategy {
   }
 
   async deleteAllByKeyMatch(key: string): Promise<void> {
-    const keysToDelete: string[] = []
-    let cursor = 0
-    do {
-      const result = await this.client.scan(cursor, { MATCH: `${key}//*`, COUNT: CHUNK_LIMIT })
-      cursor = result.cursor
-      keysToDelete.push(...result.keys)
-    } while (cursor != 0)
-    await this.deleteObjects(keysToDelete)
-    return
+    Cache.logger.info('deleteAllByKeyMatch is not implemented for RedisStack', key)
   }
 }

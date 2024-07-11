@@ -2,6 +2,7 @@ import { RedisClientOptions } from 'redis'
 import type { CacheEntry, CacheStrategy } from '@dbbs/next-cache-handler-common'
 import { RedisString } from './RedisString'
 import { RedisStack } from './RedisStack'
+import { CHUNK_LIMIT } from './types'
 
 export enum RedisStrategy {
   RedisStack,
@@ -15,8 +16,8 @@ export class RedisCache implements CacheStrategy {
     this.redisClient = new client(options)
   }
 
-  async deleteObjects(keysToDelete: string[]): Promise<void> {
-    await this.redisClient.deleteObjects(keysToDelete)
+  deleteObjects(keysToDelete: string[]): Promise<void> {
+    return this.redisClient.deleteObjects(keysToDelete)
   }
   get(pageKey: string, cacheKey: string): Promise<CacheEntry | null> {
     return this.redisClient.get(pageKey, cacheKey)
@@ -34,7 +35,14 @@ export class RedisCache implements CacheStrategy {
     return this.redisClient.delete(pageKey, cacheKey)
   }
 
-  deleteAllByKeyMatch(key: string): Promise<void> {
-    return this.redisClient.deleteAllByKeyMatch(key)
+  async deleteAllByKeyMatch(key: string): Promise<void> {
+    const keysToDelete: string[] = []
+    let cursor = 0
+    do {
+      const result = await this.redisClient.client.scan(cursor, { MATCH: `${key}//*`, COUNT: CHUNK_LIMIT })
+      cursor = result.cursor
+      keysToDelete.push(...result.keys)
+    } while (cursor != 0)
+    return this.deleteObjects(keysToDelete)
   }
 }
