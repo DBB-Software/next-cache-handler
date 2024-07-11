@@ -83,7 +83,7 @@ export class RedisStack implements CacheStrategy {
     const sanitizedTags = sanitizeTag(tag)
     // eslint-disable-next-line no-constant-condition
     while (true) {
-      const { documents } = await this.client.ft.search('idx:tags', `@tag:${sanitizedTags}`, {
+      const { documents } = await this.client.ft.search('idx:tags', `@tag:"${sanitizedTags}"`, {
         LIMIT: { from, size: CHUNK_LIMIT }
       })
 
@@ -98,10 +98,6 @@ export class RedisStack implements CacheStrategy {
       }
 
       from += CHUNK_LIMIT
-    }
-
-    if (keysToDelete.length === 0) {
-      return
     }
 
     await this.deleteObjects(keysToDelete)
