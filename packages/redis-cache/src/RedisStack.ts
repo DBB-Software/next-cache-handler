@@ -9,105 +9,70 @@ import {
   RedisScripts,
   SchemaFieldTypes
 } from 'redis'
-import type { CacheEntry, CacheStrategy } from '@dbbs/next-cache-handler-common'
-import { chunkArray } from '@dbbs/next-cache-handler-common'
-import { CHUNK_LIMIT, RedisJSON } from './types'
+import type { CacheEntry } from '@dbbs/next-cache-handler-common'
 import { Cache } from '@dbbs/next-cache-handler-core'
+import { RedisAdapter, RedisJSON } from './types'
+import { CHUNK_LIMIT } from './constants'
 
-function sanitizeTag(str: string) {
-  return str.replace(/[^a-zA-Z0-9]/gi, '_')
-}
+const INDEX_NAME = 'idx:revalidateByTag'
+const SEPARATOR = ','
+const REGEX_PUNCTUATION = /[^a-zA-Z0-9]/g
 
-export class RedisStack implements CacheStrategy {
+export class RedisStack implements RedisAdapter {
   client: RedisClientType<RedisDefaultModules & RedisModules, RedisFunctions, RedisScripts>
+
   constructor(options: RedisClientOptions) {
     this.client = createClient(options)
-    this.client.connect()
     const createIndex = async () => {
-      try {
-        // Attempt to create the index
-        await this.client.ft.create(
-          'idx:tags',
-          {
-            '$.tags[*]': { type: SchemaFieldTypes.TEXT, AS: 'tag' }
-          },
-          {
-            ON: 'JSON'
+      await this.client.ft
+        .create(INDEX_NAME, { '$.tags': { type: SchemaFieldTypes.TAG, AS: 'tag', SEPARATOR } }, { ON: 'JSON' })
+        .then(() => Cache.logger.info('Index created successfully.'))
+        .catch((e) => {
+          if (e instanceof Error && e.message.includes('Index already exists')) {
+            Cache.logger.info('Index already exists. Skipping creation.')
+          } else {
+            Cache.logger.error('Could not create an index for revalidating by tag', e)
           }
-        )
-        Cache.logger.info('Index created successfully.')
-      } catch (e) {
-        if (e instanceof Error && e.message.includes('Index already exists')) {
-          Cache.logger.info('Index already exists. Skipping creation.')
-        } else {
-          Cache.logger.error('Could not create an index for tags', e)
-        }
-      }
+        })
+      Cache.logger.info('Index created successfully.')
     }
-
-    createIndex()
+    this.client.connect().then(() => createIndex())
   }
 
-  async deleteObjects(keysToDelete: string[]) {
-    await Promise.allSettled(chunkArray(keysToDelete, CHUNK_LIMIT).map((chunk) => this.client.unlink(chunk)))
-  }
   async get(pageKey: string, cacheKey: string): Promise<CacheEntry | null> {
-    const cacheValue = (await this.client.json.get(`${pageKey}//${cacheKey}`)) as CacheEntry | null
-
-    if (!cacheValue) {
-      return null
-    }
-    return cacheValue
+    const pageData = (await this.client.json.get(`${pageKey}//${cacheKey}`)) as CacheEntry | null
+    if (!pageData) return null
+    return pageData
   }
 
   async set(pageKey: string, cacheKey: string, data: CacheEntry): Promise<void> {
     const headersTags =
       data?.value?.kind === 'PAGE' || data?.value?.kind === 'ROUTE'
-        ? data?.value?.headers?.[NEXT_CACHE_TAGS_HEADER]?.toString()?.split(',') || []
-        : []
-
-    const tags = [...headersTags, ...(data?.tags || [])]
+        ? data?.value?.headers?.[NEXT_CACHE_TAGS_HEADER]?.toString()
+        : ''
+    const tags = [headersTags, data?.tags?.join(SEPARATOR)].filter(Boolean).join(SEPARATOR)
 
     const cacheData = {
       ...data,
       ...(data.revalidate && { EX: Number(data.revalidate) }),
-      tags: tags.map(sanitizeTag)
+      tags
     }
-
     await this.client.json.set(`${pageKey}//${cacheKey}`, '.', cacheData as unknown as RedisJSON)
   }
 
-  async revalidateTag(tag: string): Promise<void> {
+  async findByTag(tag: string): Promise<string[]> {
+    const query = `@tag:{${tag.replace(REGEX_PUNCTUATION, (p) => `\\${p}`)}}`
     const keysToDelete: string[] = []
     let from = 0
-    const sanitizedTags = sanitizeTag(tag)
-    // eslint-disable-next-line no-constant-condition
-    while (true) {
-      const { documents } = await this.client.ft.search('idx:tags', `@tag:"${sanitizedTags}"`, {
+    do {
+      const { documents, total } = await this.client.ft.search(INDEX_NAME, query, {
         LIMIT: { from, size: CHUNK_LIMIT }
       })
+      keysToDelete.push(...documents.map(({ id }) => id))
+      const offset = from + documents.length
+      from = offset < total ? offset : 0
+    } while (from)
 
-      documents.forEach(({ id, value: { tags = [] } }) => {
-        if (Array.isArray(tags) && tags?.find((documentTag) => String(documentTag) === sanitizedTags)) {
-          keysToDelete.push(id)
-        }
-      })
-
-      if (documents.length < CHUNK_LIMIT) {
-        break
-      }
-
-      from += CHUNK_LIMIT
-    }
-
-    await this.deleteObjects(keysToDelete)
-  }
-
-  async delete(pageKey: string, cacheKey: string): Promise<void> {
-    await this.client.unlink(`${pageKey}//${cacheKey}`)
-  }
-
-  async deleteAllByKeyMatch(key: string): Promise<void> {
-    Cache.logger.info('deleteAllByKeyMatch is not implemented for RedisStack', key)
+    return keysToDelete
   }
 }

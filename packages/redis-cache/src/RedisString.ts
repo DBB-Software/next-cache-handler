@@ -1,19 +1,15 @@
 import { createClient, RedisClientType, RedisClientOptions } from 'redis'
-import type { CacheEntry, CacheStrategy } from '@dbbs/next-cache-handler-common'
-import { checkHeaderTags, chunkArray } from '@dbbs/next-cache-handler-common'
-import { CHUNK_LIMIT } from './types'
-import { Cache } from '@dbbs/next-cache-handler-core'
+import type { CacheEntry } from '@dbbs/next-cache-handler-common'
+import { checkHeaderTags } from '@dbbs/next-cache-handler-common'
+import { RedisAdapter } from './types'
+import { CHUNK_LIMIT } from './constants'
 
-export class RedisString implements CacheStrategy {
+export class RedisString implements RedisAdapter {
   client: RedisClientType<any, any, any>
 
   constructor(options: RedisClientOptions) {
     this.client = createClient(options)
     this.client.connect()
-  }
-
-  async deleteObjects(keysToDelete: string[]) {
-    await Promise.allSettled(chunkArray(keysToDelete, CHUNK_LIMIT).map((chunk) => this.client.del(chunk)))
   }
 
   async get(pageKey: string, cacheKey: string): Promise<CacheEntry | null> {
@@ -28,7 +24,7 @@ export class RedisString implements CacheStrategy {
     })
   }
 
-  async revalidateTag(tag: string): Promise<void> {
+  async findByTag(tag: string): Promise<string[]> {
     const keysToDelete: string[] = []
     let cursor = 0
     do {
@@ -48,15 +44,6 @@ export class RedisString implements CacheStrategy {
         }, Promise.resolve([])))
       )
     } while (cursor)
-    await this.deleteObjects(keysToDelete)
-    return
-  }
-
-  async delete(pageKey: string, cacheKey: string): Promise<void> {
-    await this.client.del(`${pageKey}//${cacheKey}`)
-  }
-
-  async deleteAllByKeyMatch(key: string): Promise<void> {
-    Cache.logger.info('deleteAllByKeyMatch is not implemented for RedisStack', key)
+    return keysToDelete
   }
 }
