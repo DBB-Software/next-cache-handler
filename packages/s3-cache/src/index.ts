@@ -1,4 +1,5 @@
 import { NEXT_CACHE_TAGS_HEADER } from 'next/dist/lib/constants'
+import md5 from 'md5'
 import { ListObjectsV2CommandOutput, S3 } from '@aws-sdk/client-s3'
 import { getAWSCredentials, type CacheEntry, type CacheStrategy, chunkArray } from '@dbbs/next-cache-handler-common'
 
@@ -45,7 +46,7 @@ export class S3Cache implements CacheStrategy {
     const pageData = await this.client
       .getObject({
         Bucket: this.bucketName,
-        Key: `${pageKey}/${cacheKey}.${CacheExtension.JSON}`
+        Key: `${pageKey}/${md5(cacheKey)}.${CacheExtension.JSON}`
       })
       .catch((error) => {
         if (NOT_FOUND_ERROR.includes(error.name)) return null
@@ -60,7 +61,7 @@ export class S3Cache implements CacheStrategy {
   async set(pageKey: string, cacheKey: string, data: CacheEntry): Promise<void> {
     const baseInput = {
       Bucket: this.bucketName,
-      Key: `${pageKey}/${cacheKey}`
+      Key: `${pageKey}/${md5(cacheKey)}`
     }
 
     if (data.value?.kind === 'PAGE' || data.value?.kind === 'ROUTE') {

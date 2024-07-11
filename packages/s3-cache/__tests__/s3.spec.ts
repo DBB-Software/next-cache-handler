@@ -64,6 +64,8 @@ jest.mock('@aws-sdk/client-s3', () => {
   }
 })
 
+jest.mock('md5', () => jest.fn((value) => value))
+
 describe('S3Cache', () => {
   afterEach(() => {
     jest.clearAllMocks()
