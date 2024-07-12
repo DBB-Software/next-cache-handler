@@ -38,9 +38,9 @@ export class RedisStack implements RedisAdapter {
   }
 
   async get(pageKey: string, cacheKey: string): Promise<CacheEntry | null> {
-    const pageData = (await this.client.json.get(`${pageKey}//${cacheKey}`)) as CacheEntry | null
+    const pageData = (await this.client.json.get(`${pageKey}//${cacheKey}`)) as Record<string, any>
     if (!pageData) return null
-    return pageData
+    return { ...pageData, tags: pageData?.tags?.split(SEPARATOR) } as CacheEntry
   }
 
   async set(pageKey: string, cacheKey: string, data: CacheEntry): Promise<void> {
