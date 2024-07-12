@@ -8,7 +8,6 @@ interface RedisJSONObject {
 
 export type RedisJSON = string | number | boolean | null | RedisJSONArray | RedisJSONObject
 
-export interface RedisAdapter
-  extends Omit<CacheStrategy, 'deleteAllByKeyMatch' | 'deleteObjects' | 'delete' | 'revalidateTag'> {
+export interface RedisAdapter extends Pick<CacheStrategy, 'set' | 'get'> {
   findByTag(tag: string, ctx: CacheContext): Promise<string[]>
 }

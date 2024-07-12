@@ -23,20 +23,18 @@ export class RedisStack implements RedisAdapter {
 
   constructor(options: RedisClientOptions) {
     this.client = createClient(options)
-    const createIndex = async () => {
-      await this.client.ft
-        .create(INDEX_NAME, { '$.tags': { type: SchemaFieldTypes.TAG, AS: 'tag', SEPARATOR } }, { ON: 'JSON' })
-        .then(() => Cache.logger.info('Index created successfully.'))
-        .catch((e) => {
-          if (e instanceof Error && e.message.includes('Index already exists')) {
-            Cache.logger.info('Index already exists. Skipping creation.')
-          } else {
+
+    this.client.connect().then(() =>
+      this.client.ft._list().then((listOfIndexes) => {
+        if (listOfIndexes.includes(INDEX_NAME)) return
+        this.client.ft
+          .create(INDEX_NAME, { '$.tags': { type: SchemaFieldTypes.TAG, AS: 'tag', SEPARATOR } }, { ON: 'JSON' })
+          .then(() => Cache.logger.info('Index created successfully.'))
+          .catch((e) => {
             Cache.logger.error('Could not create an index for revalidating by tag', e)
-          }
-        })
-      Cache.logger.info('Index created successfully.')
-    }
-    this.client.connect().then(() => createIndex())
+          })
+      })
+    )
   }
 
   async get(pageKey: string, cacheKey: string): Promise<CacheEntry | null> {
