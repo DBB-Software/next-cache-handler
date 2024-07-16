@@ -28,7 +28,7 @@ export class RedisStack implements RedisAdapter {
       this.client.ft._list().then((listOfIndexes) => {
         if (listOfIndexes.includes(INDEX_NAME)) return
         this.client.ft
-          .create(INDEX_NAME, { '$.tags': { type: SchemaFieldTypes.TAG, AS: 'tag', SEPARATOR } }, { ON: 'JSON' })
+          .create(INDEX_NAME, { '$.generalTags': { type: SchemaFieldTypes.TAG, AS: 'tag', SEPARATOR } }, { ON: 'JSON' })
           .then(() => Cache.logger.info('Index created successfully.'))
           .catch((e) => {
             const errMsg = 'Could not create an index for revalidating by tag'
@@ -40,9 +40,13 @@ export class RedisStack implements RedisAdapter {
   }
 
   async get(pageKey: string, cacheKey: string): Promise<CacheEntry | null> {
-    const pageData = (await this.client.json.get(`${pageKey}//${cacheKey}`)) as Record<string, any>
+    const pageData = (await this.client.json.get(`${pageKey}//${cacheKey}`)) as
+      | (CacheEntry & { generalTags?: string[] })
+      | null
     if (!pageData) return null
-    return { ...pageData, tags: pageData?.tags?.split(SEPARATOR) } as CacheEntry
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { generalTags, ...pureData } = pageData
+    return pureData
   }
 
   async set(pageKey: string, cacheKey: string, data: CacheEntry): Promise<void> {
@@ -50,12 +54,12 @@ export class RedisStack implements RedisAdapter {
       data?.value?.kind === 'PAGE' || data?.value?.kind === 'ROUTE'
         ? data?.value?.headers?.[NEXT_CACHE_TAGS_HEADER]?.toString()
         : ''
-    const tags = [headersTags, data?.tags?.join(SEPARATOR)].filter(Boolean).join(SEPARATOR)
+    const generalTags = [headersTags, data?.tags?.join(SEPARATOR)].filter(Boolean).join(SEPARATOR)
 
     const cacheData = {
       ...data,
       ...(data.revalidate && { EX: Number(data.revalidate) }),
-      tags
+      generalTags
     }
     await this.client.json.set(`${pageKey}//${cacheKey}`, '.', cacheData as unknown as RedisJSON)
   }

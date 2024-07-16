@@ -2,6 +2,7 @@ import { mockCacheEntry, mockDeleteKey, mockReadKey, mockScan, mockWriteKey } fr
 import { CacheEntry } from '@dbbs/next-cache-handler-common'
 import { RedisAdapter, RedisCache } from '../src'
 import { RedisStack } from '../lib/RedisStack'
+import { NEXT_CACHE_TAGS_HEADER } from 'next/dist/lib/constants'
 
 const SEPARATOR = ','
 jest.mock('redis', () => {
@@ -30,10 +31,10 @@ const mockedCacheEntry: CacheEntry = {
   ...mockCacheEntry,
   value: {
     ...mockCacheEntry.value,
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-expect-error
-    headers: ['level-page']
-  },
+    headers: {
+      NEXT_CACHE_TAGS_HEADER: ['level-page']
+    }
+  } as never,
   tags: ['level']
 }
 const mockedDocumentId = '123'
@@ -54,7 +55,7 @@ describe('RedisCache', () => {
     expect(redisClient.json.set).toHaveBeenCalledTimes(1)
     expect(redisClient.json.set).toHaveBeenCalledWith(`${cacheKey}//${cacheKey}`, '.', {
       ...mockedCacheEntry,
-      tags: mockedCacheEntry?.tags?.join(SEPARATOR)
+      generalTags: mockedCacheEntry?.tags?.join(SEPARATOR)
     })
 
     const result = await redisCache.get(cacheKey, cacheKey)
@@ -68,7 +69,7 @@ describe('RedisCache', () => {
     expect(redisClient.json.set).toHaveBeenCalledTimes(1)
     expect(redisClient.json.set).toHaveBeenCalledWith(`${cacheKey}//${cacheKey}`, '.', {
       ...mockedCacheEntry,
-      tags: mockedCacheEntry?.tags?.join(SEPARATOR)
+      generalTags: mockedCacheEntry?.tags?.join(SEPARATOR)
     })
 
     const result = await redisCache.get(cacheKey, cacheKey)
