@@ -31,7 +31,9 @@ export class RedisStack implements RedisAdapter {
           .create(INDEX_NAME, { '$.tags': { type: SchemaFieldTypes.TAG, AS: 'tag', SEPARATOR } }, { ON: 'JSON' })
           .then(() => Cache.logger.info('Index created successfully.'))
           .catch((e) => {
-            Cache.logger.error('Could not create an index for revalidating by tag', e)
+            const errMsg = 'Could not create an index for revalidating by tag'
+            Cache.logger.error(errMsg, e)
+            throw new Error(errMsg)
           })
       })
     )
