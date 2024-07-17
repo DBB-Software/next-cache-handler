@@ -1,30 +1,5 @@
-import { CacheEntry } from '@dbbs/next-cache-handler-common'
 import { RedisCache } from '../src'
-
-export const mockCacheEntry: CacheEntry = {
-  value: {
-    pageData: {},
-    html: '',
-    kind: 'PAGE',
-    postponed: undefined,
-    headers: undefined,
-    status: 200
-  },
-  lastModified: 100000
-}
-
-const store = new Map()
-const mockGetKeys = jest.fn().mockImplementation(() => [...store.keys()])
-const mockReadKey = jest.fn().mockImplementation((path) => store.get(path))
-const mockWriteKey = jest.fn().mockImplementation((path, data) => store.set(path, data))
-const mockDeleteKey = jest.fn().mockImplementation((path) => {
-  if (Array.isArray(path)) {
-    path.forEach((key) => store.delete(key))
-  } else {
-    store.delete(path)
-  }
-})
-
+import { mockCacheEntry, mockDeleteKey, mockGetKeys, mockReadKey, mockScan, mockWriteKey } from './mocks'
 jest.mock('redis', () => {
   return {
     createClient: jest.fn().mockReturnValue({
@@ -33,7 +8,8 @@ jest.mock('redis', () => {
       get: jest.fn((...params) => mockReadKey(...params)),
       set: jest.fn((...params) => mockWriteKey(...params)),
       del: jest.fn((...params) => mockDeleteKey(...params)),
-      scan: jest.fn().mockImplementation(() => ({ cursor: 0, keys: store.keys() }))
+      scan: jest.fn((...params) => mockScan(...params)),
+      unlink: jest.fn((...params) => mockDeleteKey(...params))
     })
   }
 })
@@ -51,30 +27,38 @@ describe('RedisCache', () => {
   })
   it('should set and read the cache', async () => {
     await redisCache.set(cacheKey, cacheKey, mockCacheEntry)
-    expect(redisCache.client.set).toHaveBeenCalledTimes(1)
-    expect(redisCache.client.set).toHaveBeenCalledWith(`${cacheKey}//${cacheKey}`, JSON.stringify(mockCacheEntry), {})
+    expect(redisCache.redisAdapter.client.set).toHaveBeenCalledTimes(1)
+    expect(redisCache.redisAdapter.client.set).toHaveBeenCalledWith(
+      `${cacheKey}//${cacheKey}`,
+      JSON.stringify(mockCacheEntry),
+      {}
+    )
 
     const result = await redisCache.get(cacheKey, cacheKey)
     expect(result).toEqual(mockCacheEntry)
-    expect(redisCache.client.get).toHaveBeenCalledTimes(1)
-    expect(redisCache.client.get).toHaveBeenCalledWith(`${cacheKey}//${cacheKey}`)
+    expect(redisCache.redisAdapter.client.get).toHaveBeenCalledTimes(1)
+    expect(redisCache.redisAdapter.client.get).toHaveBeenCalledWith(`${cacheKey}//${cacheKey}`)
   })
 
   it('should delete cache value', async () => {
     await redisCache.set(cacheKey, cacheKey, mockCacheEntry)
-    expect(redisCache.client.set).toHaveBeenCalledTimes(1)
-    expect(redisCache.client.set).toHaveBeenCalledWith(`${cacheKey}//${cacheKey}`, JSON.stringify(mockCacheEntry), {})
+    expect(redisCache.redisAdapter.client.set).toHaveBeenCalledTimes(1)
+    expect(redisCache.redisAdapter.client.set).toHaveBeenCalledWith(
+      `${cacheKey}//${cacheKey}`,
+      JSON.stringify(mockCacheEntry),
+      {}
+    )
 
     const result = await redisCache.get(cacheKey, cacheKey)
     expect(result).toEqual(mockCacheEntry)
-    expect(redisCache.client.get).toHaveBeenCalledTimes(1)
-    expect(redisCache.client.get).toHaveBeenCalledWith(`${cacheKey}//${cacheKey}`)
+    expect(redisCache.redisAdapter.client.get).toHaveBeenCalledTimes(1)
+    expect(redisCache.redisAdapter.client.get).toHaveBeenCalledWith(`${cacheKey}//${cacheKey}`)
 
     await redisCache.delete(cacheKey, cacheKey)
     const updatedResult = await redisCache.get(cacheKey, cacheKey)
     expect(updatedResult).toBeNull()
-    expect(redisCache.client.del).toHaveBeenCalledTimes(1)
-    expect(redisCache.client.del).toHaveBeenCalledWith(`${cacheKey}//${cacheKey}`)
+    expect(redisCache.redisAdapter.client.unlink).toHaveBeenCalledTimes(1)
+    expect(redisCache.redisAdapter.client.unlink).toHaveBeenCalledWith(`${cacheKey}//${cacheKey}`)
   })
 
   it('should delete all cache entries by key match', async () => {
@@ -84,8 +68,8 @@ describe('RedisCache', () => {
     expect(result1).toEqual(mockCacheEntry)
 
     await redisCache.deleteAllByKeyMatch(cacheKey)
-    expect(redisCache.client.del).toHaveBeenCalledTimes(1)
-    expect(redisCache.client.del).toHaveBeenNthCalledWith(1, [`${cacheKey}//${cacheKey}`])
+    expect(redisCache.redisAdapter.client.unlink).toHaveBeenCalledTimes(1)
+    expect(redisCache.redisAdapter.client.unlink).toHaveBeenNthCalledWith(1, [`${cacheKey}//${cacheKey}`])
 
     expect(await redisCache.get(cacheKey, cacheKey)).toBeNull()
   })
@@ -97,8 +81,8 @@ describe('RedisCache', () => {
     expect(await redisCache.get(cacheKey, cacheKey)).toEqual(mockCacheEntryWithTags)
 
     await redisCache.revalidateTag(cacheKey)
-    expect(redisCache.client.del).toHaveBeenCalledTimes(1)
-    expect(redisCache.client.del).toHaveBeenNthCalledWith(1, [`${cacheKey}//${cacheKey}`])
+    expect(redisCache.redisAdapter.client.unlink).toHaveBeenCalledTimes(1)
+    expect(redisCache.redisAdapter.client.unlink).toHaveBeenNthCalledWith(1, [`${cacheKey}//${cacheKey}`])
 
     expect(await redisCache.get(cacheKey, cacheKey)).toBeNull()
   })
@@ -109,8 +93,8 @@ describe('RedisCache', () => {
     expect(await redisCache.get(cacheKey, cacheKey)).toEqual(mockCacheEntry)
 
     await redisCache.deleteAllByKeyMatch(cacheKey)
-    expect(redisCache.client.del).toHaveBeenCalledTimes(1)
-    expect(redisCache.client.del).toHaveBeenNthCalledWith(1, [`${cacheKey}//${cacheKey}`])
+    expect(redisCache.redisAdapter.client.unlink).toHaveBeenCalledTimes(1)
+    expect(redisCache.redisAdapter.client.unlink).toHaveBeenNthCalledWith(1, [`${cacheKey}//${cacheKey}`])
 
     expect(await redisCache.get(cacheKey, cacheKey)).toBeNull()
   })
