@@ -60,7 +60,8 @@ export class S3Cache implements CacheStrategy {
   async set(pageKey: string, cacheKey: string, data: CacheEntry): Promise<void> {
     const baseInput = {
       Bucket: this.bucketName,
-      Key: `${pageKey}/${cacheKey}`
+      Key: `${pageKey}/${cacheKey}`,
+      ...(data.revalidate ? { Expires: new Date(Date.now() + Number(data.revalidate) * 1000) } : undefined)
     }
 
     if (data.value?.kind === 'PAGE' || data.value?.kind === 'ROUTE') {
