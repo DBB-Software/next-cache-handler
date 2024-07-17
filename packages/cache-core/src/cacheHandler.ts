@@ -1,6 +1,7 @@
 import path from 'path'
 import cookieParser from 'cookie'
 import parser from 'ua-parser-js'
+import crypto from 'crypto'
 import { pathToRegexp, Path } from 'path-to-regexp'
 import { NEXT_CACHE_IMPLICIT_TAG_ID } from 'next/dist/lib/constants'
 import type {
@@ -95,7 +96,10 @@ export class Cache implements CacheHandler {
   }
 
   getPageCacheKey(pageKey: string) {
-    return [pageKey.split('/').at(-1), this.pageCacheKey].filter(Boolean).join('-')
+    return crypto
+      .createHash('md5')
+      .update([pageKey.split('/').at(-1), this.pageCacheKey].filter(Boolean).join('-'))
+      .digest('hex')
   }
 
   checkIsStaleCache(pageData: CacheEntry) {

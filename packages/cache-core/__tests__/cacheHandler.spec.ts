@@ -20,6 +20,16 @@ jest.mock('../src/strategies/fileSystem', () => {
   }
 })
 
+jest.mock('crypto', () => {
+  return {
+    createHash: jest.fn().mockImplementation(() => ({
+      update: jest.fn((value: string) => ({
+        digest: jest.fn(() => value)
+      }))
+    }))
+  }
+})
+
 const mockLogger: BaseLogger = {
   info: jest.fn(),
   error: jest.fn()
