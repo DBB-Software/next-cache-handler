@@ -1,5 +1,6 @@
 import { NEXT_CACHE_TAGS_HEADER } from 'next/dist/lib/constants'
 import { ListObjectsV2CommandOutput, S3 } from '@aws-sdk/client-s3'
+import { PutObjectCommandInput } from '@aws-sdk/client-s3/dist-types/commands/PutObjectCommand'
 import { getAWSCredentials, type CacheEntry, type CacheStrategy, chunkArray } from '@dbbs/next-cache-handler-common'
 
 const TAG_PREFIX = 'revalidateTag'
@@ -58,15 +59,15 @@ export class S3Cache implements CacheStrategy {
   }
 
   async set(pageKey: string, cacheKey: string, data: CacheEntry): Promise<void> {
-    const baseInput = {
+    const baseInput: PutObjectCommandInput = {
       Bucket: this.bucketName,
       Key: `${pageKey}/${cacheKey}`,
-      ...(data.revalidate ? { Expires: new Date(Date.now() + Number(data.revalidate) * 1000) } : undefined)
+      ...(data.revalidate ? { CacheControl: `max-age=${data.revalidate}` } : undefined)
     }
 
     if (data.value?.kind === 'PAGE' || data.value?.kind === 'ROUTE') {
       const headersTags = this.buildTagKeys(data.value.headers?.[NEXT_CACHE_TAGS_HEADER]?.toString())
-      const input = { ...baseInput, ...(headersTags ? { Tagging: headersTags } : {}) }
+      const input: PutObjectCommandInput = { ...baseInput, ...(headersTags ? { Tagging: headersTags } : {}) }
 
       if (data.value?.kind === 'PAGE') {
         await this.client.putObject({
