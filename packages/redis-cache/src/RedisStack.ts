@@ -10,7 +10,6 @@ import {
   SchemaFieldTypes
 } from 'redis'
 import type { CacheEntry } from '@dbbs/next-cache-handler-common'
-import { Cache } from '@dbbs/next-cache-handler-core'
 import { RedisAdapter, RedisJSON } from './types'
 import { CHUNK_LIMIT } from './constants'
 
@@ -29,10 +28,8 @@ export class RedisStack implements RedisAdapter {
         if (listOfIndexes.includes(INDEX_NAME)) return
         this.client.ft
           .create(INDEX_NAME, { '$.generalTags': { type: SchemaFieldTypes.TAG, AS: 'tag', SEPARATOR } }, { ON: 'JSON' })
-          .then(() => Cache.logger.info('Index created successfully.'))
           .catch((e) => {
-            const errMsg = 'Could not create an index for revalidating by tag'
-            Cache.logger.error(errMsg, e)
+            const errMsg = `Could not create an index for revalidating by tag. Reason: ${e}`
             throw new Error(errMsg)
           })
       })
