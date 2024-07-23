@@ -37,7 +37,7 @@ export class Cache implements CacheHandler {
 
   pageCacheKey: string
 
-  device?: string
+  deviceCacheKey: string
 
   serverCacheDirPath: string
 
@@ -45,12 +45,10 @@ export class Cache implements CacheHandler {
     this.nextOptions = nextOptions
     this.cookieCacheKey = this.buildCookiesCacheKey()
     this.queryCacheKey = this.buildQueryCacheKey()
-    this.pageCacheKey = this.buildPageCacheKey()
+    this.deviceCacheKey = this.getCurrentDeviceType()
     this.serverCacheDirPath = path.join(nextOptions.serverDistDir!, 'cacheData')
 
-    if (Cache.enableDeviceSplit) {
-      this.device = this.getCurrentDeviceType()
-    }
+    this.pageCacheKey = this.buildPageCacheKey()
   }
 
   buildCacheKey(keys: string[], data: Record<string, string>, prefix: string) {
@@ -88,11 +86,13 @@ export class Cache implements CacheHandler {
   }
 
   getCurrentDeviceType() {
-    return parser(this.nextOptions._requestHeaders['user-agent'] as string)?.device?.type ?? ''
+    return Cache.enableDeviceSplit
+      ? parser(this.nextOptions._requestHeaders['user-agent'] as string)?.device?.type ?? ''
+      : ''
   }
 
   buildPageCacheKey() {
-    return [this.device, this.cookieCacheKey, this.queryCacheKey].filter(Boolean).join('-')
+    return [this.deviceCacheKey, this.cookieCacheKey, this.queryCacheKey].filter(Boolean).join('-')
   }
 
   getPageCacheKey(pageKey: string) {
