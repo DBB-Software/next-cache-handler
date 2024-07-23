@@ -16,6 +16,13 @@ import type {
 import { ConsoleLogger } from './logger'
 import { FileSystemCache } from './strategies/fileSystem'
 
+export enum HEADER_DEVICE_TYPE {
+  Desktop = 'cloudfront-is-desktop-viewer',
+  Mobile = 'cloudfront-is-mobile-viewer',
+  SmartTV = 'cloudfront-is-smarttv-viewer',
+  Tablet = 'cloudfront-is-tablet-viewer'
+}
+
 export class Cache implements CacheHandler {
   static cacheCookies: string[] = []
 
@@ -86,9 +93,23 @@ export class Cache implements CacheHandler {
   }
 
   getCurrentDeviceType() {
-    return Cache.enableDeviceSplit
-      ? parser(this.nextOptions._requestHeaders['user-agent'] as string)?.device?.type ?? ''
-      : ''
+    if (!Cache.enableDeviceSplit) return ''
+    const headers = this.nextOptions._requestHeaders
+
+    if (headers['user-agent'] === 'Amazon CloudFront') {
+      if (headers[HEADER_DEVICE_TYPE.Desktop] === 'true') {
+        return ''
+      } else if (headers[HEADER_DEVICE_TYPE.Mobile] === 'true') {
+        return 'mobile'
+      } else if (headers[HEADER_DEVICE_TYPE.Tablet] === 'true') {
+        return 'tablet'
+      } else if (headers[HEADER_DEVICE_TYPE.SmartTV] === 'true') {
+        return 'smarttv'
+      }
+      return ''
+    }
+
+    return parser(headers['user-agent'] as string)?.device?.type ?? ''
   }
 
   buildPageCacheKey() {
