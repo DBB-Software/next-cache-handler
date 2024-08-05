@@ -83,14 +83,14 @@ describe('FileSystemCache', () => {
     expect(result1).toEqual(mockCacheEntry)
     expect(result2).toEqual(mockCacheEntry)
 
-    await fileSystemCache.deleteAllByKeyMatch(cacheKey, mockCacheStrategyContext)
+    await fileSystemCache.deleteAllByKeyMatch(cacheKey, mockCacheStrategyContext, [])
     expect(mockRm).toHaveBeenCalledTimes(1)
     expect(mockRm).toHaveBeenNthCalledWith(1, cacheFilePath)
 
     expect(await fileSystemCache.get(cacheKey, cacheKey, mockCacheStrategyContext)).toBeNull()
     expect(await fileSystemCache.get(cacheKey2, cacheKey2, mockCacheStrategyContext)).toEqual(mockCacheEntry)
 
-    await fileSystemCache.deleteAllByKeyMatch(cacheKey2, mockCacheStrategyContext)
+    await fileSystemCache.deleteAllByKeyMatch(cacheKey2, mockCacheStrategyContext, [])
     expect(await fileSystemCache.get(cacheKey2, cacheKey2, mockCacheStrategyContext)).toBeNull()
   })
 
@@ -105,7 +105,7 @@ describe('FileSystemCache', () => {
     expect(mockReadFile).toHaveBeenCalledTimes(1)
     expect(mockReadFile).toHaveBeenCalledWith(cacheFilePath, 'utf-8')
 
-    await fileSystemCache.revalidateTag(cacheKey, mockCacheStrategyContext)
+    await fileSystemCache.revalidateTag(cacheKey, mockCacheStrategyContext, [])
     const updatedResult = await fileSystemCache.get(cacheKey, cacheKey, mockCacheStrategyContext)
     expect(updatedResult).toBeNull()
   })
@@ -120,7 +120,7 @@ describe('FileSystemCache', () => {
     expect(mockReadFile).toHaveBeenCalledTimes(1)
     expect(mockReadFile).toHaveBeenCalledWith(cacheFilePath, 'utf-8')
 
-    await fileSystemCache.deleteAllByKeyMatch(cacheKey, mockCacheStrategyContext)
+    await fileSystemCache.deleteAllByKeyMatch(cacheKey, mockCacheStrategyContext, [])
     const updatedResult = await fileSystemCache.get(cacheKey, cacheKey, mockCacheStrategyContext)
     expect(updatedResult).toBeNull()
   })

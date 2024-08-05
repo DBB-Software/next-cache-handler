@@ -179,7 +179,7 @@ describe('S3Cache', () => {
 
     expect(await s3Cache.get(cacheKey, cacheKey)).toEqual(mockCacheEntryWithTags)
 
-    await s3Cache.revalidateTag(cacheKey)
+    await s3Cache.revalidateTag(cacheKey, undefined, [])
 
     expect(await s3Cache.get(cacheKey, cacheKey)).toBeNull()
   })
@@ -189,7 +189,7 @@ describe('S3Cache', () => {
 
     expect(await s3Cache.get(cacheKey, cacheKey)).toEqual(mockCacheEntry)
 
-    await s3Cache.deleteAllByKeyMatch(cacheKey)
+    await s3Cache.deleteAllByKeyMatch(cacheKey, undefined, [])
     expect(await s3Cache.get(cacheKey, cacheKey)).toBeNull()
   })
 })

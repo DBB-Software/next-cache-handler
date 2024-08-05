@@ -2,7 +2,6 @@ import { mockCacheEntry, mockDeleteKey, mockReadKey, mockScan, mockWriteKey } fr
 import { CacheEntry } from '@dbbs/next-cache-handler-common'
 import { RedisAdapter, RedisCache } from '../src'
 import { RedisStack } from '../lib/RedisStack'
-import { NEXT_CACHE_TAGS_HEADER } from 'next/dist/lib/constants'
 
 const SEPARATOR = ','
 jest.mock('redis', () => {
@@ -90,7 +89,7 @@ describe('RedisCache', () => {
     const result1 = await redisCache.get(cacheKey, cacheKey)
     expect(result1).toEqual(mockedCacheEntry)
 
-    await redisCache.deleteAllByKeyMatch(cacheKey)
+    await redisCache.deleteAllByKeyMatch(cacheKey, undefined, [])
     expect(redisClient.unlink).toHaveBeenCalledTimes(1)
     expect(redisClient.unlink).toHaveBeenNthCalledWith(1, [`${cacheKey}//${cacheKey}`])
 
@@ -103,7 +102,7 @@ describe('RedisCache', () => {
 
     expect(await redisCache.get(cacheKey, cacheKey)).toEqual(mockCacheEntryWithTags)
 
-    await redisCache.revalidateTag(cacheKey)
+    await redisCache.revalidateTag(cacheKey, undefined, [])
     expect(redisClient.ft.search).toHaveBeenCalledTimes(1)
     expect(redisClient.ft.search).toHaveBeenNthCalledWith(1, 'idx:revalidateByTag', `@tag:{${cacheKey}}`, {
       LIMIT: { from: 0, size: 100 }
@@ -117,7 +116,7 @@ describe('RedisCache', () => {
 
     expect(await redisCache.get(cacheKey, cacheKey)).toEqual(mockedCacheEntry)
 
-    await redisCache.deleteAllByKeyMatch(cacheKey)
+    await redisCache.deleteAllByKeyMatch(cacheKey, undefined, [])
     expect(redisClient.unlink).toHaveBeenCalledTimes(1)
     expect(redisClient.unlink).toHaveBeenNthCalledWith(1, [`${cacheKey}//${cacheKey}`])
 

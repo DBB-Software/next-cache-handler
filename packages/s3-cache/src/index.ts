@@ -120,7 +120,7 @@ export class S3Cache implements CacheStrategy {
     await Promise.all(promises)
   }
 
-  async revalidateTag(tag: string): Promise<void> {
+  async revalidateTag(tag: string, _ctx: CacheContext | undefined, allowCacheKeys: string[]): Promise<void> {
     const keysToDelete: string[] = []
     let nextContinuationToken: string | undefined = undefined
     do {
@@ -133,7 +133,12 @@ export class S3Cache implements CacheStrategy {
 
       keysToDelete.push(
         ...(await contents.reduce<Promise<string[]>>(async (acc, { Key: key }) => {
-          if (!key) return acc
+          if (
+            !key ||
+            (allowCacheKeys.length &&
+              allowCacheKeys.some((allowKey) => key.replace(/\.(json|html)$/, '').endsWith(allowKey)))
+          )
+            return acc
 
           const { TagSet = [] } = await this.client.getObjectTagging({ Bucket: this.bucketName, Key: key })
           const tags = TagSet.filter(({ Key: key }) => key?.startsWith(TAG_PREFIX)).map(({ Value: tags }) => tags || '')
@@ -157,7 +162,7 @@ export class S3Cache implements CacheStrategy {
     })
   }
 
-  async deleteAllByKeyMatch(pageKey: string): Promise<void> {
+  async deleteAllByKeyMatch(pageKey: string, _ctx: CacheContext | undefined, allowCacheKeys: string[]): Promise<void> {
     const keysToDelete: string[] = []
     let nextContinuationToken: string | undefined = undefined
     do {
@@ -178,7 +183,13 @@ export class S3Cache implements CacheStrategy {
       )
     } while (nextContinuationToken)
 
-    await this.deleteObjects(keysToDelete)
+    await this.deleteObjects(
+      allowCacheKeys.length
+        ? keysToDelete.filter((key) =>
+            allowCacheKeys.some((allowKey) => key.replace(/\.(json|html)$/, '').endsWith(allowKey))
+          )
+        : keysToDelete
+    )
     return
   }
 }
