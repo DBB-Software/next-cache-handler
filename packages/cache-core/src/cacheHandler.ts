@@ -79,7 +79,7 @@ export class Cache implements CacheHandler {
 
   buildCookiesCacheKey() {
     const parsedCookies = cookieParser.parse((this.nextOptions._requestHeaders.cookie as string) || '')
-    return this.buildCacheKey(Cache.cacheCookies, parsedCookies, 'cookie')
+    return this.buildCacheKey(Cache.cacheCookies.sort(), parsedCookies, 'cookie')
   }
 
   buildQueryCacheKey() {
@@ -89,7 +89,7 @@ export class Cache implements CacheHandler {
 
       const parsedQuery = JSON.parse(decodeURIComponent(currentQueryString as string))
 
-      return this.buildCacheKey(Cache.cacheQueries, parsedQuery, 'query')
+      return this.buildCacheKey(Cache.cacheQueries.sort(), parsedQuery, 'query')
     } catch (_e) {
       console.warn('Could not parse request query.')
       return ''
