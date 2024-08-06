@@ -13,7 +13,8 @@ const TAG_PREFIX = 'revalidateTag'
 const NOT_FOUND_ERROR = ['NotFound', 'NoSuchKey']
 enum CacheExtension {
   JSON = 'json',
-  HTML = 'html'
+  HTML = 'html',
+  RSC = 'rsc'
 }
 const PAGE_CACHE_EXTENSIONS = Object.values(CacheExtension)
 const CHUNK_LIMIT = 1000
@@ -89,7 +90,7 @@ export class S3Cache implements CacheStrategy {
           promises.push(
             this.client.putObject({
               ...input,
-              Key: `${input.Key}.rsc`,
+              Key: `${input.Key}.${CacheExtension.RSC}`,
               Body: data.value.pageData as string, // for server react components we need to safe additional reference data for nextjs.
               ContentType: 'text/x-component'
             })
