@@ -76,20 +76,13 @@ export class S3Cache implements CacheStrategy {
           Body: data.value.html,
           ContentType: 'text/html'
         })
-        await this.client.putObject({
-          ...input,
-          Key: `${input.Key}.${CacheExtension.JSON}`,
-          Body: data.value.pageData as string,
-          ContentType: 'text/x-component'
-        })
-      } else {
-        await this.client.putObject({
-          ...input,
-          Key: `${input.Key}.${CacheExtension.JSON}`,
-          Body: JSON.stringify(data),
-          ContentType: 'application/json'
-        })
       }
+      await this.client.putObject({
+        ...input,
+        Key: `${input.Key}.${CacheExtension.JSON}`,
+        Body: JSON.stringify(data),
+        ContentType: 'application/json'
+      })
     } else {
       await this.client.putObject({
         ...baseInput,
