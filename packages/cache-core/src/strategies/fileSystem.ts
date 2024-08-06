@@ -26,7 +26,7 @@ export class FileSystemCache implements CacheStrategy {
     await fs.writeFile(pathToCacheFile, JSON.stringify(data))
   }
 
-  async revalidateTag(tag: string, ctx: CacheContext | undefined, allowCacheKeys: string[]): Promise<void> {
+  async revalidateTag(tag: string, allowCacheKeys: string[], ctx: CacheContext): Promise<void> {
     if (!ctx || !existsSync(ctx.serverCacheDirPath)) return
 
     const recursiveDelete = async (initPath: string = '') => {
@@ -54,7 +54,7 @@ export class FileSystemCache implements CacheStrategy {
     await fs.rm(path.join(ctx.serverCacheDirPath, pageKey, `${cacheKey}.json`))
   }
 
-  async deleteAllByKeyMatch(pageKey: string, ctx: CacheContext | undefined, allowCacheKeys: string[]) {
+  async deleteAllByKeyMatch(pageKey: string, allowCacheKeys: string[], ctx: CacheContext) {
     if (!ctx || !existsSync(ctx.serverCacheDirPath)) return
 
     const pathToCacheFolder = path.join(ctx.serverCacheDirPath, ...pageKey.split('/'))

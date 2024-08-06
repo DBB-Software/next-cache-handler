@@ -152,7 +152,7 @@ export class Cache implements CacheHandler {
 
       Cache.logger.info(`Reading cache data for ${pageKey}`)
 
-      const data = await Cache.cache.get(this.removeSlashFromStart(pageKey), this.getPageCacheKey(pageKey), {
+      const data = await Cache.cache.get(this.removeSlashFromStart(pageKey), this.buildPageCacheKey(), {
         serverCacheDirPath: this.serverCacheDirPath,
         isAppRouter: this.isAppRouter
       })
@@ -216,22 +216,14 @@ export class Cache implements CacheHandler {
         const path = tag.slice(NEXT_CACHE_IMPLICIT_TAG_ID.length)
         Cache.logger.info(`Revalidate by path ${path}`)
         const pageKey = this.removeSlashFromStart(path)
-        await Cache.cache.deleteAllByKeyMatch(
-          !pageKey.length ? 'index' : pageKey,
-          {
-            serverCacheDirPath: this.serverCacheDirPath
-          },
-          this.getCurrentCacheKey()
-        )
+        await Cache.cache.deleteAllByKeyMatch(!pageKey.length ? 'index' : pageKey, this.getCurrentCacheKey(), {
+          serverCacheDirPath: this.serverCacheDirPath
+        })
       } else {
         Cache.logger.info(`Revalidate by tag ${tag}`)
-        await Cache.cache.revalidateTag(
-          tag,
-          {
-            serverCacheDirPath: this.serverCacheDirPath
-          },
-          this.getCurrentCacheKey()
-        )
+        await Cache.cache.revalidateTag(tag, this.getCurrentCacheKey(), {
+          serverCacheDirPath: this.serverCacheDirPath
+        })
       }
     } catch (err) {
       Cache.logger.error(`Failed revalidate by ${tag}`, err)

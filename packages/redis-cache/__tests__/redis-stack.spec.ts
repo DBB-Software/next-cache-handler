@@ -54,6 +54,7 @@ describe('RedisCache', () => {
     expect(redisClient.json.set).toHaveBeenCalledTimes(1)
     expect(redisClient.json.set).toHaveBeenCalledWith(`${cacheKey}//${cacheKey}`, '.', {
       ...mockedCacheEntry,
+      currentCacheKey: cacheKey,
       generalTags: mockedCacheEntry?.tags?.join(SEPARATOR)
     })
 
@@ -68,6 +69,7 @@ describe('RedisCache', () => {
     expect(redisClient.json.set).toHaveBeenCalledTimes(1)
     expect(redisClient.json.set).toHaveBeenCalledWith(`${cacheKey}//${cacheKey}`, '.', {
       ...mockedCacheEntry,
+      currentCacheKey: cacheKey,
       generalTags: mockedCacheEntry?.tags?.join(SEPARATOR)
     })
 
@@ -89,7 +91,7 @@ describe('RedisCache', () => {
     const result1 = await redisCache.get(cacheKey, cacheKey)
     expect(result1).toEqual(mockedCacheEntry)
 
-    await redisCache.deleteAllByKeyMatch(cacheKey, undefined, [])
+    await redisCache.deleteAllByKeyMatch(cacheKey, [])
     expect(redisClient.unlink).toHaveBeenCalledTimes(1)
     expect(redisClient.unlink).toHaveBeenNthCalledWith(1, [`${cacheKey}//${cacheKey}`])
 
@@ -102,7 +104,7 @@ describe('RedisCache', () => {
 
     expect(await redisCache.get(cacheKey, cacheKey)).toEqual(mockCacheEntryWithTags)
 
-    await redisCache.revalidateTag(cacheKey, undefined, [])
+    await redisCache.revalidateTag(cacheKey, [])
     expect(redisClient.ft.search).toHaveBeenCalledTimes(1)
     expect(redisClient.ft.search).toHaveBeenNthCalledWith(1, 'idx:revalidateByTag', `@tag:{${cacheKey}}`, {
       LIMIT: { from: 0, size: 100 }
@@ -116,7 +118,7 @@ describe('RedisCache', () => {
 
     expect(await redisCache.get(cacheKey, cacheKey)).toEqual(mockedCacheEntry)
 
-    await redisCache.deleteAllByKeyMatch(cacheKey, undefined, [])
+    await redisCache.deleteAllByKeyMatch(cacheKey, [])
     expect(redisClient.unlink).toHaveBeenCalledTimes(1)
     expect(redisClient.unlink).toHaveBeenNthCalledWith(1, [`${cacheKey}//${cacheKey}`])
 

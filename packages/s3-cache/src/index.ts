@@ -18,6 +18,7 @@ enum CacheExtension {
 }
 const PAGE_CACHE_EXTENSIONS = Object.values(CacheExtension)
 const CHUNK_LIMIT = 1000
+const EXT_REGEX = new RegExp(`.(${PAGE_CACHE_EXTENSIONS.join('|')})$`)
 
 export class S3Cache implements CacheStrategy {
   public readonly client: S3
@@ -120,7 +121,7 @@ export class S3Cache implements CacheStrategy {
     await Promise.all(promises)
   }
 
-  async revalidateTag(tag: string, _ctx: CacheContext | undefined, allowCacheKeys: string[]): Promise<void> {
+  async revalidateTag(tag: string, allowCacheKeys: string[]): Promise<void> {
     const keysToDelete: string[] = []
     let nextContinuationToken: string | undefined = undefined
     do {
@@ -135,8 +136,7 @@ export class S3Cache implements CacheStrategy {
         ...(await contents.reduce<Promise<string[]>>(async (acc, { Key: key }) => {
           if (
             !key ||
-            (allowCacheKeys.length &&
-              allowCacheKeys.some((allowKey) => key.replace(/\.(json|html)$/, '').endsWith(allowKey)))
+            (allowCacheKeys.length && !allowCacheKeys.some((allowKey) => key.replace(EXT_REGEX, '').endsWith(allowKey)))
           )
             return acc
 
@@ -162,7 +162,13 @@ export class S3Cache implements CacheStrategy {
     })
   }
 
-  async deleteAllByKeyMatch(pageKey: string, _ctx: CacheContext | undefined, allowCacheKeys: string[]): Promise<void> {
+  async deleteAllByKeyMatch(pageKey: string, allowCacheKeys: string[]): Promise<void> {
+    if (allowCacheKeys.length) {
+      await this.deleteObjects(
+        allowCacheKeys.map((allowKey) => PAGE_CACHE_EXTENSIONS.map((ext) => `${pageKey}/${allowKey}.${ext}`)).flat()
+      )
+      return
+    }
     const keysToDelete: string[] = []
     let nextContinuationToken: string | undefined = undefined
     do {
@@ -183,13 +189,7 @@ export class S3Cache implements CacheStrategy {
       )
     } while (nextContinuationToken)
 
-    await this.deleteObjects(
-      allowCacheKeys.length
-        ? keysToDelete.filter((key) =>
-            allowCacheKeys.some((allowKey) => key.replace(/\.(json|html)$/, '').endsWith(allowKey))
-          )
-        : keysToDelete
-    )
+    if (keysToDelete.length) await this.deleteObjects(keysToDelete)
     return
   }
 }

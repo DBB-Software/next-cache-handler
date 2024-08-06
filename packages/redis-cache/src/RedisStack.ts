@@ -27,7 +27,14 @@ export class RedisStack implements RedisAdapter {
       this.client.ft._list().then((listOfIndexes) => {
         if (listOfIndexes.includes(INDEX_NAME)) return
         this.client.ft
-          .create(INDEX_NAME, { '$.generalTags': { type: SchemaFieldTypes.TAG, AS: 'tag', SEPARATOR } }, { ON: 'JSON' })
+          .create(
+            INDEX_NAME,
+            {
+              '$.generalTags': { type: SchemaFieldTypes.TAG, AS: 'tag', SEPARATOR },
+              '$.currentCacheKey': { type: SchemaFieldTypes.TEXT, AS: 'currentCacheKey' }
+            },
+            { ON: 'JSON' }
+          )
           .catch((e) => {
             const errMsg = `Could not create an index for revalidating by tag. Reason: ${e}`
             throw new Error(errMsg)
@@ -38,11 +45,11 @@ export class RedisStack implements RedisAdapter {
 
   async get(pageKey: string, cacheKey: string): Promise<CacheEntry | null> {
     const pageData = (await this.client.json.get(`${pageKey}//${cacheKey}`)) as
-      | (CacheEntry & { generalTags?: string[] })
+      | (CacheEntry & { generalTags?: string[]; currentCacheKey?: string })
       | null
     if (!pageData) return null
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { generalTags, ...pureData } = pageData
+    const { generalTags, currentCacheKey, ...pureData } = pageData
     return pureData
   }
 
@@ -56,13 +63,18 @@ export class RedisStack implements RedisAdapter {
     const cacheData = {
       ...data,
       ...(data.revalidate && { EX: Number(data.revalidate) }),
+      currentCacheKey: cacheKey,
       generalTags
     }
     await this.client.json.set(`${pageKey}//${cacheKey}`, '.', cacheData as unknown as RedisJSON)
   }
 
-  async findByTag(tag: string): Promise<string[]> {
-    const query = `@tag:{${tag.replace(REGEX_PUNCTUATION, (p) => `\\${p}`)}}`
+  async findCacheKeys(tag: string, cacheKeys: string[]): Promise<string[]> {
+    const query = [
+      `@tag:{${tag.replace(REGEX_PUNCTUATION, (p) => `\\${p}`)}}`,
+      ...(cacheKeys.length ? [`(${cacheKeys.map((key) => `*${key}`).join('|')})`] : [])
+    ].join(' ')
+
     const keysToDelete: string[] = []
     let from = 0
     do {

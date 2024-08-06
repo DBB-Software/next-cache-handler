@@ -27,12 +27,12 @@ describe('MemoryCache', () => {
     expect(memoryCache.get(cacheKey, cacheKey)).toEqual(mockCacheEntry)
     expect(memoryCache.get(cacheKey2, cacheKey2)).toEqual(mockCacheEntry)
 
-    memoryCache.deleteAllByKeyMatch(cacheKey, undefined, [])
+    memoryCache.deleteAllByKeyMatch(cacheKey, [])
 
     expect(memoryCache.get(cacheKey, cacheKey)).toBeFalsy()
     expect(memoryCache.get(cacheKey2, cacheKey2)).toEqual(mockCacheEntry)
 
-    memoryCache.deleteAllByKeyMatch(cacheKey2, undefined, [])
+    memoryCache.deleteAllByKeyMatch(cacheKey2, [])
     expect(memoryCache.get(cacheKey2, cacheKey2)).toBeFalsy()
   })
 
@@ -61,7 +61,7 @@ describe('MemoryCache', () => {
     expect(memoryCache.get(cacheKey, cacheKey)).toEqual(mockCacheEntryWithTags)
     expect(memoryCache.get(cacheKey2, cacheKey2)).toEqual(mockCacheEntryWithTags)
 
-    await memoryCache.revalidateTag(cacheKey, undefined, [])
+    await memoryCache.revalidateTag(cacheKey, [])
 
     expect(memoryCache.get(cacheKey, cacheKey)).toBeFalsy()
     expect(memoryCache.get(cacheKey2, cacheKey2)).toBeFalsy()
@@ -74,11 +74,11 @@ describe('MemoryCache', () => {
     expect(memoryCache.get(cacheKey, cacheKey)).toEqual(mockCacheEntry)
     expect(memoryCache.get(cacheKey2, cacheKey2)).toEqual(mockCacheEntry)
 
-    await memoryCache.deleteAllByKeyMatch(cacheKey, undefined, [])
+    await memoryCache.deleteAllByKeyMatch(cacheKey, [])
     expect(memoryCache.get(cacheKey, cacheKey)).toBeFalsy()
     expect(memoryCache.get(cacheKey2, cacheKey2)).toEqual(mockCacheEntry)
 
-    await memoryCache.deleteAllByKeyMatch(cacheKey2, undefined, [])
+    await memoryCache.deleteAllByKeyMatch(cacheKey2, [])
     expect(memoryCache.get(cacheKey2, cacheKey2)).toBeFalsy()
   })
 })

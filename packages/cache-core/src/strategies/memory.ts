@@ -1,5 +1,5 @@
 import type { CacheEntry, CacheStrategy } from '@dbbs/next-cache-handler-common'
-import { CacheContext, checkHeaderTags } from '@dbbs/next-cache-handler-common'
+import { checkHeaderTags } from '@dbbs/next-cache-handler-common'
 
 const mapCache = new Map()
 
@@ -43,7 +43,7 @@ export class MemoryCache implements CacheStrategy {
     mapCache.set(`${pageKey}/${cacheKey}`, JSON.stringify(data))
   }
 
-  async revalidateTag(tag: string, _ctx: CacheContext | undefined, allowCacheKeys: string[]): Promise<void> {
+  async revalidateTag(tag: string, allowCacheKeys: string[]): Promise<void> {
     const filteredKeys = !allowCacheKeys.length
       ? [...mapCache.keys()]
       : [...mapCache.keys()].filter((key: string) => allowCacheKeys.some((allowKey) => key.endsWith(allowKey)))
@@ -63,7 +63,7 @@ export class MemoryCache implements CacheStrategy {
     mapCache.delete(cacheKey)
   }
 
-  async deleteAllByKeyMatch(pageKey: string, _ctx: CacheContext | undefined, allowCacheKeys: string[]) {
+  async deleteAllByKeyMatch(pageKey: string, allowCacheKeys: string[]) {
     const allKeys: string[] = [...mapCache.keys()]
 
     const relatedKeys = allKeys.filter(
