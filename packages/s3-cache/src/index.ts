@@ -1,13 +1,20 @@
 import { NEXT_CACHE_TAGS_HEADER } from 'next/dist/lib/constants'
 import { ListObjectsV2CommandOutput, S3 } from '@aws-sdk/client-s3'
 import { PutObjectCommandInput } from '@aws-sdk/client-s3/dist-types/commands/PutObjectCommand'
-import { getAWSCredentials, type CacheEntry, type CacheStrategy, chunkArray } from '@dbbs/next-cache-handler-common'
+import {
+  getAWSCredentials,
+  type CacheEntry,
+  type CacheStrategy,
+  chunkArray,
+  CacheContext
+} from '@dbbs/next-cache-handler-common'
 
 const TAG_PREFIX = 'revalidateTag'
 const NOT_FOUND_ERROR = ['NotFound', 'NoSuchKey']
 enum CacheExtension {
   JSON = 'json',
-  HTML = 'html'
+  HTML = 'html',
+  RSC = 'rsc'
 }
 const PAGE_CACHE_EXTENSIONS = Object.values(CacheExtension)
 const CHUNK_LIMIT = 1000
@@ -58,7 +65,8 @@ export class S3Cache implements CacheStrategy {
     return JSON.parse(await pageData.Body.transformToString('utf-8'))
   }
 
-  async set(pageKey: string, cacheKey: string, data: CacheEntry): Promise<void> {
+  async set(pageKey: string, cacheKey: string, data: CacheEntry, ctx: CacheContext): Promise<void> {
+    const promises = []
     const baseInput: PutObjectCommandInput = {
       Bucket: this.bucketName,
       Key: `${pageKey}/${cacheKey}`,
@@ -70,28 +78,46 @@ export class S3Cache implements CacheStrategy {
       const input: PutObjectCommandInput = { ...baseInput, ...(headersTags ? { Tagging: headersTags } : {}) }
 
       if (data.value?.kind === 'PAGE') {
-        await this.client.putObject({
-          ...input,
-          Key: `${input.Key}.${CacheExtension.HTML}`,
-          Body: data.value.html,
-          ContentType: 'text/html'
-        })
+        promises.push(
+          this.client.putObject({
+            ...input,
+            Key: `${input.Key}.${CacheExtension.HTML}`,
+            Body: data.value.html,
+            ContentType: 'text/html'
+          })
+        )
+        if (ctx.isAppRouter) {
+          promises.push(
+            this.client.putObject({
+              ...input,
+              Key: `${input.Key}.${CacheExtension.RSC}`,
+              Body: data.value.pageData as string, // for server react components we need to safe additional reference data for nextjs.
+              ContentType: 'text/x-component'
+            })
+          )
+        }
       }
-      await this.client.putObject({
-        ...input,
-        Key: `${input.Key}.${CacheExtension.JSON}`,
-        Body: JSON.stringify(data),
-        ContentType: 'application/json'
-      })
+      promises.push(
+        this.client.putObject({
+          ...input,
+          Key: `${input.Key}.${CacheExtension.JSON}`,
+          Body: JSON.stringify(data),
+          ContentType: 'application/json'
+        })
+      )
     } else {
-      await this.client.putObject({
-        ...baseInput,
-        Key: `${baseInput.Key}.${CacheExtension.JSON}`,
-        Body: JSON.stringify(data),
-        ContentType: 'application/json',
-        ...(data.tags?.length ? { Tagging: `${this.buildTagKeys(data.tags)}` } : {})
-      })
+      promises.push(
+        this.client.putObject({
+          ...baseInput,
+          Key: `${baseInput.Key}.${CacheExtension.JSON}`,
+          Body: JSON.stringify(data),
+          ContentType: 'application/json',
+          ...(data.tags?.length ? { Tagging: `${this.buildTagKeys(data.tags)}` } : {})
+        })
+      )
     }
+
+    await Promise.all(promises)
   }
 
   async revalidateTag(tag: string): Promise<void> {

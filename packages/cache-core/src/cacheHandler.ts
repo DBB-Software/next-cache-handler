@@ -48,14 +48,16 @@ export class Cache implements CacheHandler {
 
   serverCacheDirPath: string
 
+  isAppRouter: boolean
+
   constructor(nextOptions: NextCacheHandlerContext) {
     this.nextOptions = nextOptions
     this.cookieCacheKey = this.buildCookiesCacheKey()
     this.queryCacheKey = this.buildQueryCacheKey()
     this.deviceCacheKey = this.getCurrentDeviceType()
     this.serverCacheDirPath = path.join(nextOptions.serverDistDir!, 'cacheData')
-
     this.pageCacheKey = this.buildPageCacheKey()
+    this.isAppRouter = !!nextOptions._appDir
   }
 
   buildCacheKey(keys: string[], data: Record<string, string>, prefix: string) {
@@ -148,7 +150,8 @@ export class Cache implements CacheHandler {
       Cache.logger.info(`Reading cache data for ${pageKey}`)
 
       const data = await Cache.cache.get(this.removeSlashFromStart(pageKey), this.getPageCacheKey(pageKey), {
-        serverCacheDirPath: this.serverCacheDirPath
+        serverCacheDirPath: this.serverCacheDirPath,
+        isAppRouter: this.isAppRouter
       })
 
       // Send page to revalidate
@@ -175,7 +178,8 @@ export class Cache implements CacheHandler {
 
       Cache.logger.info(`Writing cache for ${pageKey}`)
       const context = {
-        serverCacheDirPath: this.serverCacheDirPath
+        serverCacheDirPath: this.serverCacheDirPath,
+        isAppRouter: this.isAppRouter
       }
 
       if (!data) {

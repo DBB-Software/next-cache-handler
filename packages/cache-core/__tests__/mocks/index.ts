@@ -11,8 +11,8 @@ export const mockNextHandlerContext: NextCacheHandlerContext = {
   experimental: {
     ppr: false
   },
-  _appDir: true,
-  _pagesDir: false,
+  _appDir: false,
+  _pagesDir: true,
   _requestHeaders: {},
   serverDistDir: 'path-to-cache'
 }
@@ -38,5 +38,6 @@ export const mockCacheEntry: CacheEntry = {
 }
 
 export const mockCacheStrategyContext: CacheContext = {
-  serverCacheDirPath: mockHandlerMethodContext.serverCacheDirPath
+  serverCacheDirPath: mockHandlerMethodContext.serverCacheDirPath,
+  isAppRouter: false
 }

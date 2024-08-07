@@ -19,6 +19,7 @@ export interface CacheEntry {
 
 export interface CacheContext {
   serverCacheDirPath: string
+  isAppRouter?: boolean
 }
 
 export interface CacheStrategy {

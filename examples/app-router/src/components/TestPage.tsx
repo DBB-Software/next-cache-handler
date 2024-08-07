@@ -1,6 +1,7 @@
 'use client'
 import { FC, useRef } from 'react'
 import { usePathname } from 'next/navigation'
+import Link from 'next/link'
 
 type TestPageProps = {
   title: string
@@ -26,9 +27,9 @@ export const TestPage: FC<TestPageProps> = ({ title, date, buildTime, expireTime
   return (
     <div style={{ display: 'flex', height: '100vh', flexDirection: 'column' }}>
       <div style={{ background: 'gray', padding: '20px', display: 'flex', gap: '20px' }}>
-        <a href="/">Home</a>
-        <a href="/level">Level</a>
-        <a href="/level/sub-level">Sub-level</a>
+        <Link href="/">Home</Link>
+        <Link href="/level">Level</Link>
+        <Link href="/level/sub-level">Sub-level</Link>
       </div>
       <div style={{ flex: '1 1 0%', display: 'flex', flexDirection: 'column', padding: '8px' }}>
         <h1>Welcome to Next Cache Handler</h1>
