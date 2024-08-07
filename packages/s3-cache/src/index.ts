@@ -95,16 +95,26 @@ export class S3Cache implements CacheStrategy {
               ContentType: 'text/x-component'
             })
           )
+        } else {
+          promises.push(
+            this.client.putObject({
+              ...input,
+              Key: `${input.Key}.${CacheExtension.JSON}`,
+              Body: JSON.stringify(data.value.pageData),
+              ContentType: 'application/json'
+            })
+          )
         }
+      } else {
+        promises.push(
+          this.client.putObject({
+            ...input,
+            Key: `${input.Key}.${CacheExtension.JSON}`,
+            Body: JSON.stringify(data),
+            ContentType: 'application/json'
+          })
+        )
       }
-      promises.push(
-        this.client.putObject({
-          ...input,
-          Key: `${input.Key}.${CacheExtension.JSON}`,
-          Body: JSON.stringify(data),
-          ContentType: 'application/json'
-        })
-      )
     } else {
       promises.push(
         this.client.putObject({

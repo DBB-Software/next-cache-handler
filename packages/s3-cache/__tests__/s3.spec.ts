@@ -89,12 +89,12 @@ describe('S3Cache', () => {
     expect(s3Cache.client.putObject).toHaveBeenNthCalledWith(2, {
       Bucket: mockBucketName,
       Key: `${cacheKey}/${cacheKey}.json`,
-      Body: JSON.stringify(mockCacheEntry),
+      Body: JSON.stringify(mockCacheEntry.value.pageData),
       ContentType: 'application/json'
     })
 
     const result = await s3Cache.get(cacheKey, cacheKey)
-    expect(result).toEqual(mockCacheEntry)
+    expect(result).toEqual(mockCacheEntry.value.pageData)
     expect(s3Cache.client.getObject).toHaveBeenCalledTimes(1)
     expect(s3Cache.client.getObject).toHaveBeenCalledWith({
       Bucket: mockBucketName,
@@ -104,7 +104,7 @@ describe('S3Cache', () => {
 
   it('should set and read the cache for app router', async () => {
     await s3Cache.set(cacheKey, cacheKey, mockCacheEntry, { ...mockCacheContext, isAppRouter: true })
-    expect(s3Cache.client.putObject).toHaveBeenCalledTimes(3)
+    expect(s3Cache.client.putObject).toHaveBeenCalledTimes(2)
     expect(s3Cache.client.putObject).toHaveBeenNthCalledWith(1, {
       Bucket: mockBucketName,
       Key: `${cacheKey}/${cacheKey}.html`,
@@ -117,15 +117,9 @@ describe('S3Cache', () => {
       Body: mockCacheEntry.value.pageData,
       ContentType: 'text/x-component'
     })
-    expect(s3Cache.client.putObject).toHaveBeenNthCalledWith(3, {
-      Bucket: mockBucketName,
-      Key: `${cacheKey}/${cacheKey}.json`,
-      Body: JSON.stringify(mockCacheEntry),
-      ContentType: 'application/json'
-    })
 
     const result = await s3Cache.get(cacheKey, cacheKey)
-    expect(result).toEqual(mockCacheEntry)
+    expect(result).toEqual(mockCacheEntry.value.pageData)
     expect(s3Cache.client.getObject).toHaveBeenCalledTimes(1)
     expect(s3Cache.client.getObject).toHaveBeenCalledWith({
       Bucket: mockBucketName,
@@ -145,12 +139,12 @@ describe('S3Cache', () => {
     expect(s3Cache.client.putObject).toHaveBeenNthCalledWith(2, {
       Bucket: mockBucketName,
       Key: `${cacheKey}/${cacheKey}.json`,
-      Body: JSON.stringify(mockCacheEntry),
+      Body: JSON.stringify(mockCacheEntry.value.pageData),
       ContentType: 'application/json'
     })
 
     const result = await s3Cache.get(cacheKey, cacheKey)
-    expect(result).toEqual(mockCacheEntry)
+    expect(result).toEqual(mockCacheEntry.value.pageData)
     expect(s3Cache.client.getObject).toHaveBeenCalledTimes(1)
     expect(s3Cache.client.getObject).toHaveBeenCalledWith({
       Bucket: mockBucketName,
@@ -177,7 +171,7 @@ describe('S3Cache', () => {
     const mockCacheEntryWithTags = { ...mockCacheEntry, tags: [cacheKey] }
     await s3Cache.set(cacheKey, cacheKey, mockCacheEntryWithTags, mockCacheContext)
 
-    expect(await s3Cache.get(cacheKey, cacheKey)).toEqual(mockCacheEntryWithTags)
+    expect(await s3Cache.get(cacheKey, cacheKey)).toEqual(mockCacheEntryWithTags.value.pageData)
 
     await s3Cache.revalidateTag(cacheKey)
 
@@ -187,7 +181,7 @@ describe('S3Cache', () => {
   it('should revalidate cache by path', async () => {
     await s3Cache.set(cacheKey, cacheKey, mockCacheEntry, mockCacheContext)
 
-    expect(await s3Cache.get(cacheKey, cacheKey)).toEqual(mockCacheEntry)
+    expect(await s3Cache.get(cacheKey, cacheKey)).toEqual(mockCacheEntry.value.pageData)
 
     await s3Cache.deleteAllByKeyMatch(cacheKey)
     expect(await s3Cache.get(cacheKey, cacheKey)).toBeNull()
