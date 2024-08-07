@@ -163,7 +163,13 @@ describe('S3Cache', () => {
     expect(s3Cache.client.deleteObjects).toHaveBeenCalledTimes(1)
     expect(s3Cache.client.deleteObjects).toHaveBeenNthCalledWith(1, {
       Bucket: mockBucketName,
-      Delete: { Objects: [{ Key: `${cacheKey}/${cacheKey}.json` }, { Key: `${cacheKey}/${cacheKey}.html` }] }
+      Delete: {
+        Objects: [
+          { Key: `${cacheKey}/${cacheKey}.json` },
+          { Key: `${cacheKey}/${cacheKey}.html` },
+          { Key: `${cacheKey}/${cacheKey}.rsc` }
+        ]
+      }
     })
   })
 

@@ -150,7 +150,8 @@ export class Cache implements CacheHandler {
       Cache.logger.info(`Reading cache data for ${pageKey}`)
 
       const data = await Cache.cache.get(this.removeSlashFromStart(pageKey), this.getPageCacheKey(pageKey), {
-        serverCacheDirPath: this.serverCacheDirPath
+        serverCacheDirPath: this.serverCacheDirPath,
+        isAppRouter: this.isAppRouter
       })
 
       // Send page to revalidate
