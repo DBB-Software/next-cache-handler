@@ -53,12 +53,11 @@ export class RedisStack implements RedisAdapter {
         : ''
     const generalTags = [headersTags, data?.tags?.join(SEPARATOR)].filter(Boolean).join(SEPARATOR)
 
-    const cacheData = {
-      ...data,
-      ...(data.revalidate && { EX: Number(data.revalidate) }),
-      generalTags
-    }
+    const cacheData = { ...data, generalTags }
     await this.client.json.set(`${pageKey}//${cacheKey}`, '.', cacheData as unknown as RedisJSON)
+    if (data.revalidate) {
+      await this.client.expire(`${pageKey}//${cacheKey}`, Number(data.revalidate))
+    }
   }
 
   async findByTag(tag: string): Promise<string[]> {
