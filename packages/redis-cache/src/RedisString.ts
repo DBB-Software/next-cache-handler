@@ -24,26 +24,32 @@ export class RedisString implements RedisAdapter {
     })
   }
 
-  async findByTag(tag: string): Promise<string[]> {
+  async findCacheKeys(tag: string, cacheKeys: string[]): Promise<string[]> {
     const keysToDelete: string[] = []
-    let cursor = 0
-    do {
-      const { cursor: currentCursor, keys } = await this.client.scan(cursor, { MATCH: '*', COUNT: CHUNK_LIMIT })
-      cursor = currentCursor
+    const cacheKeysToScan = cacheKeys.length ? cacheKeys : ['']
+    for (const cacheKey of cacheKeysToScan) {
+      let cursor = 0
+      do {
+        const { cursor: currentCursor, keys } = await this.client.scan(cursor, {
+          MATCH: `*${cacheKey}`,
+          COUNT: CHUNK_LIMIT
+        })
+        cursor = currentCursor
 
-      keysToDelete.push(
-        ...(await [...keys].reduce<Promise<string[]>>(async (acc, key) => {
-          const data = await this.client.get(key)
-          if (!data) return acc
+        keysToDelete.push(
+          ...(await [...keys].reduce<Promise<string[]>>(async (acc, key) => {
+            const data = await this.client.get(key)
+            if (!data) return acc
 
-          const pageData: CacheEntry | null = JSON.parse(data)
-          if (pageData?.tags?.includes(tag) || checkHeaderTags(pageData?.value || null, tag)) {
-            return [...(await acc), key]
-          }
-          return acc
-        }, Promise.resolve([])))
-      )
-    } while (cursor)
+            const pageData: CacheEntry | null = JSON.parse(data)
+            if (pageData?.tags?.includes(tag) || checkHeaderTags(pageData?.value || null, tag)) {
+              return [...(await acc), key]
+            }
+            return acc
+          }, Promise.resolve([])))
+        )
+      } while (cursor)
+    }
     return keysToDelete
   }
 }

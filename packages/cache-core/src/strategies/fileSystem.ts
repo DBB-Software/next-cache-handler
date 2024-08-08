@@ -26,8 +26,8 @@ export class FileSystemCache implements CacheStrategy {
     await fs.writeFile(pathToCacheFile, JSON.stringify(data))
   }
 
-  async revalidateTag(tag: string, ctx: CacheContext): Promise<void> {
-    if (!existsSync(ctx.serverCacheDirPath)) return
+  async revalidateTag(tag: string, allowCacheKeys: string[], ctx: CacheContext): Promise<void> {
+    if (!ctx || !existsSync(ctx.serverCacheDirPath)) return
 
     const recursiveDelete = async (initPath: string = '') => {
       const cacheDir = await fs.readdir(initPath, { withFileTypes: true })
@@ -37,6 +37,7 @@ export class FileSystemCache implements CacheStrategy {
           await recursiveDelete(pathToItem)
           continue
         }
+        if (allowCacheKeys.length && !allowCacheKeys.includes(cacheItem.name.replace('.json', ''))) continue
 
         const data = await fs.readFile(pathToItem, 'utf-8')
         const pageData: CacheEntry = JSON.parse(data)
@@ -53,14 +54,18 @@ export class FileSystemCache implements CacheStrategy {
     await fs.rm(path.join(ctx.serverCacheDirPath, pageKey, `${cacheKey}.json`))
   }
 
-  async deleteAllByKeyMatch(pageKey: string, ctx: CacheContext) {
-    if (!existsSync(ctx.serverCacheDirPath)) return
+  async deleteAllByKeyMatch(pageKey: string, allowCacheKeys: string[], ctx: CacheContext) {
+    if (!ctx || !existsSync(ctx.serverCacheDirPath)) return
 
     const pathToCacheFolder = path.join(ctx.serverCacheDirPath, ...pageKey.split('/'))
     if (!existsSync(pathToCacheFolder)) return
 
     const cacheDir = await fs.readdir(pathToCacheFolder, { withFileTypes: true })
-    const filesToDelete = cacheDir.filter((cacheItem) => !cacheItem.isDirectory())
+    const filesToDelete = cacheDir.filter(
+      (cacheItem) =>
+        !cacheItem.isDirectory() &&
+        (!allowCacheKeys.length || allowCacheKeys.includes(cacheItem.name.replace('.json', '')))
+    )
 
     if (cacheDir.length === filesToDelete.length) {
       await fs.rm(pathToCacheFolder, { recursive: true })

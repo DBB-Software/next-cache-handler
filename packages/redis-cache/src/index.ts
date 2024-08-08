@@ -25,15 +25,21 @@ export class RedisCache implements CacheStrategy {
     return this.redisAdapter.set(pageKey, cacheKey, data)
   }
 
-  async revalidateTag(tag: string): Promise<void> {
-    await this.redisAdapter.client.unlink(await this.redisAdapter.findByTag(tag))
+  async revalidateTag(tag: string, allowCacheKeys: string[]): Promise<void> {
+    const keysToDelete = await this.redisAdapter.findCacheKeys(tag, allowCacheKeys)
+    if (keysToDelete.length) await this.redisAdapter.client.unlink(keysToDelete)
   }
 
   async delete(pageKey: string, cacheKey: string): Promise<void> {
     await this.redisAdapter.client.unlink(`${pageKey}//${cacheKey}`)
   }
 
-  async deleteAllByKeyMatch(key: string): Promise<void> {
+  async deleteAllByKeyMatch(key: string, allowCacheKeys: string[]): Promise<void> {
+    if (allowCacheKeys.length) {
+      await this.redisAdapter.client.unlink(allowCacheKeys.map((allowKey) => `${key}//${allowKey}`))
+      return
+    }
+
     const keysToDelete: string[] = []
     let cursor = 0
     do {
@@ -41,7 +47,8 @@ export class RedisCache implements CacheStrategy {
       cursor = result.cursor
       keysToDelete.push(...result.keys)
     } while (cursor != 0)
-    await this.redisAdapter.client.unlink(keysToDelete)
+
+    if (keysToDelete.length) await this.redisAdapter.client.unlink(keysToDelete)
     return
   }
 }

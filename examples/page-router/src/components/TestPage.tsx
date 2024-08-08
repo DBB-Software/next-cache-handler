@@ -4,14 +4,20 @@ import Link from 'next/link'
 
 type TestPageProps = {
   title: string
+  date: string
   buildTime: number
   expireTime?: number
 }
 
-export const TestPage: FC<TestPageProps> = ({ title, buildTime, expireTime }) => {
+export const TestPage: FC<TestPageProps> = ({ title, date, buildTime, expireTime }) => {
   const pathRef = useRef<HTMLInputElement>(null)
+  const tagRef = useRef<HTMLInputElement>(null)
   const { pathname: currentPath } = useRouter()
 
+  const revalidateTagHandler = () => {
+    const tagValue = tagRef?.current?.value
+    if (tagValue) fetch(`/api/revalidate?tag=${tagValue}`)
+  }
   const revalidatePathHandler = () => {
     const pathValue = pathRef?.current?.value || currentPath
     fetch(`/api/revalidate?path=${pathValue}`)
@@ -31,10 +37,15 @@ export const TestPage: FC<TestPageProps> = ({ title, buildTime, expireTime }) =>
           handler is going to cache and generate data for all combinations of those keys, so if users returns to the
           same key what is already available in cache - he will retrieve cached result
         </h2>
-        <p>{title}</p>
+        <p>Title: {title}</p>
+        <p>Date: {date}</p>
         <div style={{ display: 'flex', gap: '8px', margin: '8px' }}>
           <button onClick={revalidatePathHandler}>Revalidate by Path</button>
           <input ref={pathRef} type="text" placeholder={currentPath} />
+        </div>
+        <div style={{ display: 'flex', gap: '8px', margin: '8px' }}>
+          <button onClick={revalidateTagHandler}>Revalidate by Tag</button>
+          <input ref={tagRef} type="text" />
         </div>
       </div>
       <div style={{ background: 'gray', padding: '20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>

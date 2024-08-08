@@ -1,6 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next'
 
-export default async function revalidate(req: NextApiRequest, res: NextApiResponse) {
+export default async function simpleRevalidate(req: NextApiRequest, res: NextApiResponse) {
   try {
     if (!req.query.path) {
       return res.status(400).json({ error: 'Path should be specified.' })

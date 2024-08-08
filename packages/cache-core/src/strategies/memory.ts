@@ -43,8 +43,11 @@ export class MemoryCache implements CacheStrategy {
     mapCache.set(`${pageKey}/${cacheKey}`, JSON.stringify(data))
   }
 
-  async revalidateTag(tag: string): Promise<void> {
-    for (const cacheKey of [...mapCache.keys()]) {
+  async revalidateTag(tag: string, allowCacheKeys: string[]): Promise<void> {
+    const filteredKeys = !allowCacheKeys.length
+      ? [...mapCache.keys()]
+      : [...mapCache.keys()].filter((key: string) => allowCacheKeys.some((allowKey) => key.endsWith(allowKey)))
+    for (const cacheKey of filteredKeys) {
       const pageData: CacheEntry = JSON.parse(mapCache.get(cacheKey))
       if (pageData?.tags?.includes(tag) || checkHeaderTags(pageData.value, tag)) {
         await this.delete('', cacheKey)
@@ -60,11 +63,14 @@ export class MemoryCache implements CacheStrategy {
     mapCache.delete(cacheKey)
   }
 
-  async deleteAllByKeyMatch(pageKey: string) {
+  async deleteAllByKeyMatch(pageKey: string, allowCacheKeys: string[]) {
     const allKeys: string[] = [...mapCache.keys()]
 
     const relatedKeys = allKeys.filter(
-      (key) => key.startsWith(pageKey) && key.replace(`${pageKey}/`, '').split('/').length === 1
+      (key) =>
+        key.startsWith(pageKey) &&
+        key.replace(`${pageKey}/`, '').split('/').length === 1 &&
+        (!allowCacheKeys.length || allowCacheKeys.some((allowKey) => key.endsWith(allowKey)))
     )
 
     relatedKeys.forEach((cacheKey) => {
