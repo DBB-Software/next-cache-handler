@@ -8,6 +8,7 @@ const titles = [
 
 export default async function getHomePage(req: NextApiRequest, res: NextApiResponse) {
   return res.status(200).json({
-    title: titles[Math.floor(Math.random() * 3)]
+    title: titles[Math.floor(Math.random() * 3)],
+    date: new Date().toString()
   })
 }

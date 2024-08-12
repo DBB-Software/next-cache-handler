@@ -23,6 +23,8 @@ export enum HEADER_DEVICE_TYPE {
   Tablet = 'cloudfront-is-tablet-viewer'
 }
 
+export const CURRENT_CACHE_KEY_HEADER_NAME = 'x-current-cache-key'
+
 export class Cache implements CacheHandler {
   static cacheCookies: string[] = []
 
@@ -94,6 +96,11 @@ export class Cache implements CacheHandler {
     }
   }
 
+  getCurrentCacheKey(): string[] {
+    const currentCacheKey = this.nextOptions._requestHeaders[CURRENT_CACHE_KEY_HEADER_NAME] || []
+    return typeof currentCacheKey === 'string' ? currentCacheKey.split(', ') : currentCacheKey
+  }
+
   getCurrentDeviceType() {
     if (!Cache.enableDeviceSplit) return ''
     const headers = this.nextOptions._requestHeaders
@@ -115,13 +122,9 @@ export class Cache implements CacheHandler {
   }
 
   buildPageCacheKey() {
-    return [this.deviceCacheKey, this.cookieCacheKey, this.queryCacheKey].filter(Boolean).join('-')
-  }
-
-  getPageCacheKey(pageKey: string) {
     return crypto
       .createHash('md5')
-      .update([pageKey.split('/').at(-1), this.pageCacheKey].filter(Boolean).join('-'))
+      .update([this.deviceCacheKey, this.cookieCacheKey, this.queryCacheKey].filter(Boolean).join('-'))
       .digest('hex')
   }
 
@@ -149,7 +152,7 @@ export class Cache implements CacheHandler {
 
       Cache.logger.info(`Reading cache data for ${pageKey}`)
 
-      const data = await Cache.cache.get(this.removeSlashFromStart(pageKey), this.getPageCacheKey(pageKey), {
+      const data = await Cache.cache.get(this.removeSlashFromStart(pageKey), this.buildPageCacheKey(), {
         serverCacheDirPath: this.serverCacheDirPath,
         isAppRouter: this.isAppRouter
       })
@@ -185,14 +188,14 @@ export class Cache implements CacheHandler {
       if (!data) {
         try {
           Cache.logger.info(`Deleting cache data for ${pageKey}`)
-          await Cache.cache.delete(this.removeSlashFromStart(pageKey), this.getPageCacheKey(pageKey), context)
+          await Cache.cache.delete(this.removeSlashFromStart(pageKey), this.buildPageCacheKey(), context)
         } catch (err) {
           Cache.logger.error(`Failed to delete cache data for ${pageKey}`, err)
         }
       } else {
         await Cache.cache.set(
           this.removeSlashFromStart(pageKey),
-          this.getPageCacheKey(pageKey),
+          this.buildPageCacheKey(),
           {
             value: data,
             lastModified: Date.now(),
@@ -213,12 +216,12 @@ export class Cache implements CacheHandler {
         const path = tag.slice(NEXT_CACHE_IMPLICIT_TAG_ID.length)
         Cache.logger.info(`Revalidate by path ${path}`)
         const pageKey = this.removeSlashFromStart(path)
-        await Cache.cache.deleteAllByKeyMatch(!pageKey.length ? 'index' : pageKey, {
+        await Cache.cache.deleteAllByKeyMatch(!pageKey.length ? 'index' : pageKey, this.getCurrentCacheKey(), {
           serverCacheDirPath: this.serverCacheDirPath
         })
       } else {
         Cache.logger.info(`Revalidate by tag ${tag}`)
-        await Cache.cache.revalidateTag(tag, {
+        await Cache.cache.revalidateTag(tag, this.getCurrentCacheKey(), {
           serverCacheDirPath: this.serverCacheDirPath
         })
       }
