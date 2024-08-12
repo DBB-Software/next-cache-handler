@@ -65,16 +65,12 @@ export class Cache implements CacheHandler {
   buildCacheKey(keys: string[], data: Record<string, string>, prefix: string) {
     if (!keys.length) return ''
 
-    const cacheKey = keys.reduce((prev, curr) => {
-      if (!data[curr]) {
-        return prev
-      }
-      return `${prev ? '-' : ''}${curr}=${data[curr]}`
-    }, '')
+    const cacheKeys = keys.reduce<string[]>(
+      (prev, curr) => (!data[curr] ? prev : [...prev, `${curr}=${data[curr]}`]),
+      []
+    )
 
-    if (!cacheKey) return ''
-
-    return `${prefix}(${cacheKey})`
+    return !cacheKeys.length ? '' : `${prefix}(${cacheKeys.join('-')})`
   }
 
   buildCookiesCacheKey() {
