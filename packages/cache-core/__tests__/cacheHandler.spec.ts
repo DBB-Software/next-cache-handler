@@ -149,7 +149,7 @@ describe('CacheHandler', () => {
         _requestHeaders: overrideHeaders
       })
       const pageKey = 'index'
-      const currentCacheKey = [pageKey, expectedCacheSuffix].filter(Boolean).join('-')
+      const currentCacheKey = [expectedCacheSuffix].filter(Boolean).join('-')
 
       await cacheHandler.get(pageKey)
       expect(cacheStrategy.get).toHaveBeenCalledTimes(1)
@@ -236,7 +236,7 @@ describe('CacheHandler', () => {
     await cacheHandler.set(mockCacheKey, null, mockCacheStrategyContext)
 
     expect(mockDeleteData).toHaveBeenCalledTimes(1)
-    expect(mockDeleteData).toHaveBeenCalledWith(mockCacheKey, mockCacheKey, mockCacheStrategyContext)
+    expect(mockDeleteData).toHaveBeenCalledWith(mockCacheKey, '', mockCacheStrategyContext)
 
     expect(mockLogger.info).toHaveBeenCalledTimes(2)
     expect(mockLogger.info).toHaveBeenNthCalledWith(1, `Writing cache for ${mockCacheKey}`)
