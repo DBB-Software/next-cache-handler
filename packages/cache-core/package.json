@@ -24,7 +24,8 @@
     "test": "jest",
     "lint": "eslint \"src/**/*.ts*\"",
     "lint:fix": "eslint \"src/**/*.ts*\" --fix",
-    "build": "rm -rf lib && rollup -c --bundleConfigAsCjs"
+    "build": "rm -rf lib && rollup -c --bundleConfigAsCjs",
+    "release": "npx semantic-release"
   },
   "repository": {
     "type": "git",

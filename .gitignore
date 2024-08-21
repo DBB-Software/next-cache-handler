@@ -27,3 +27,5 @@ next-env.d.ts
 .idea
 
 .turbo
+
+CHANGELOG.md
