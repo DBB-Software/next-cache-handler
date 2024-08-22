@@ -1,6 +1,11 @@
-#!/bin/sh
-. "$(dirname "$0")/_/husky.sh"
+#!/usr/bin/env sh
+branch_name="$(git branch --show-current)"
+branch_regex="^(bug|chore|feat)\/([a-zA-Z]+-[0-9]+)(-(.*))?"
+
+if [[ ! $branch_name =~ $branch_regex ]]; then
+  echo "Branch name does not match expected format. Ex. feat/TYPE-000"
+  exit 1
+fi
+
 
 npx lint-staged
-
-exit 0
