@@ -13,6 +13,9 @@
       "lint:fix": {},
       "clean": {
         "cache": false
+      },
+      "release": {
+        "cache": false
       }
     }
 }
