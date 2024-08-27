@@ -3,13 +3,6 @@ import type { CacheHandlerContext as NextCacheHandlerContext } from 'next/dist/s
 
 export { NextCacheHandlerContext, IncrementalCacheValue, IncrementalCacheKindHint }
 
-export type LoggerInputParams = Parameters<typeof console.log>
-
-export interface BaseLogger {
-  info(...params: LoggerInputParams): void
-  error(...params: LoggerInputParams): void
-}
-
 export interface CacheEntry {
   value: IncrementalCacheValue | null
   lastModified: number // time when data was saved
