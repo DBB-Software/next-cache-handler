@@ -5,15 +5,13 @@ import crypto from 'crypto'
 import { pathToRegexp, Path } from 'path-to-regexp'
 import { NEXT_CACHE_IMPLICIT_TAG_ID } from 'next/dist/lib/constants'
 import type {
-  CacheHandler,
-  BaseLogger,
   NextCacheHandlerContext,
   CacheStrategy,
   CacheHandlerContext,
   CacheEntry,
   IncrementalCacheValue
 } from '@dbbs/next-cache-handler-common'
-import { ConsoleLogger } from './logger'
+import { ConsoleLogger, type BaseLogger } from './logger'
 import { FileSystemCache } from './strategies/fileSystem'
 
 export enum HEADER_DEVICE_TYPE {
@@ -21,6 +19,25 @@ export enum HEADER_DEVICE_TYPE {
   Mobile = 'cloudfront-is-mobile-viewer',
   SmartTV = 'cloudfront-is-smarttv-viewer',
   Tablet = 'cloudfront-is-tablet-viewer'
+}
+
+export declare class CacheHandler {
+  static logger: BaseLogger
+  static cacheCookies: string[]
+  static cacheQueries: string[]
+  static cache: CacheStrategy
+
+  nextOptions: NextCacheHandlerContext
+  cookieCacheKey: string
+  queryCacheKey: string
+  device?: string
+  serverCacheDirPath: string
+
+  constructor(context: NextCacheHandlerContext)
+
+  get(pageKey: string, ctx: CacheHandlerContext): Promise<CacheEntry | null>
+  set(pageKey: string, data: IncrementalCacheValue | null, ctx: CacheHandlerContext): Promise<void>
+  revalidateTag(tag: string): Promise<void>
 }
 
 export const CURRENT_CACHE_KEY_HEADER_NAME = 'x-current-cache-key'

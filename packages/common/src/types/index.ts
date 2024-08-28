@@ -32,22 +32,3 @@ export interface CacheHandlerContext {
   softTags?: string[]
   serverCacheDirPath: string
 }
-
-export declare class CacheHandler {
-  static logger: BaseLogger
-  static cacheCookies: string[]
-  static cacheQueries: string[]
-  static cache: CacheStrategy
-
-  nextOptions: NextCacheHandlerContext
-  cookieCacheKey: string
-  queryCacheKey: string
-  device?: string
-  serverCacheDirPath: string
-
-  constructor(context: NextCacheHandlerContext)
-
-  get(pageKey: string, ctx: CacheHandlerContext): Promise<CacheEntry | null>
-  set(pageKey: string, data: IncrementalCacheValue | null, ctx: CacheHandlerContext): Promise<void>
-  revalidateTag(tag: string): Promise<void>
-}
