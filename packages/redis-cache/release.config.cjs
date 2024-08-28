@@ -10,13 +10,13 @@ module.exports = {
       {
         preset: 'conventionalcommits',
         releaseRules: [
-          { type: 'feat', scope: '*', release: 'minor' },
+          { type: 'feat', scope: '*', release: 'patch' },
           { type: 'bug', scope: '*', release: 'patch' },
           { type: 'chore', release: false },
-          { breaking: true, release: 'major' }
+          { breaking: true, release: 'minor' }
         ],
         parserOpts: {
-          headerPattern: /^\((\w+)\/([A-Z]+-\d+)\):\s(.*)$/,
+          headerPattern: /^(\w+)(?:\(([\w-]+)\))?:\s*(.*)$/,
           headerCorrespondence: ['type', 'scope', 'subject']
         }
       }
@@ -26,7 +26,7 @@ module.exports = {
       {
         preset: 'conventionalcommits',
         parserOpts: {
-          headerPattern: /^\((\w+)\/([A-Z]+-\d+)\):\s(.*)$/,
+          headerPattern: /^(\w+)(?:\(([\w-]+)\))?:\s*(.*)$/,
           headerCorrespondence: ['type', 'scope', 'subject']
         }
       }
