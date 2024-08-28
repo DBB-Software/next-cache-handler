@@ -4,7 +4,7 @@ import {
   CacheEntry,
   CacheContext,
   CacheHandlerContext
-} from '../../src'
+} from '@dbbs/next-cache-handler-common'
 
 export const mockNextHandlerContext: NextCacheHandlerContext = {
   revalidatedTags: [],
