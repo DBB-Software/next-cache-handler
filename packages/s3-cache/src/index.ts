@@ -48,13 +48,13 @@ export class S3Cache implements CacheStrategy {
     )
   }
 
-  async get(pageKey: string, cacheKey: string): Promise<CacheEntry | null> {
+  async get(pageKey: string, cacheKey: string, ctx: CacheContext): Promise<CacheEntry | null> {
     if (!this.client) return null
 
     const pageData = await this.client
       .getObject({
         Bucket: this.bucketName,
-        Key: `${pageKey}/${cacheKey}.${CacheExtension.JSON}`
+        Key: `${pageKey}/${cacheKey}.${ctx.isAppRouter ? CacheExtension.RSC : CacheExtension.JSON}`
       })
       .catch((error) => {
         if (NOT_FOUND_ERROR.includes(error.name)) return null
@@ -63,7 +63,9 @@ export class S3Cache implements CacheStrategy {
 
     if (!pageData?.Body) return null
 
-    return JSON.parse(await pageData.Body.transformToString('utf-8'))
+    const response = await pageData.Body.transformToString('utf-8')
+
+    return ctx.isAppRouter ? response : JSON.parse(response)
   }
 
   async set(pageKey: string, cacheKey: string, data: CacheEntry, ctx: CacheContext): Promise<void> {
