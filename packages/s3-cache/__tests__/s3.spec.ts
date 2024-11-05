@@ -93,7 +93,7 @@ describe('S3Cache', () => {
       ContentType: 'application/json'
     })
 
-    const result = await s3Cache.get(cacheKey, cacheKey)
+    const result = await s3Cache.get(cacheKey, cacheKey, mockCacheContext)
     expect(result).toEqual(mockCacheEntry.value.pageData)
     expect(s3Cache.client.getObject).toHaveBeenCalledTimes(1)
     expect(s3Cache.client.getObject).toHaveBeenCalledWith({
@@ -118,7 +118,7 @@ describe('S3Cache', () => {
       ContentType: 'text/x-component'
     })
 
-    const result = await s3Cache.get(cacheKey, cacheKey)
+    const result = await s3Cache.get(cacheKey, cacheKey, mockCacheContext)
     expect(result).toEqual(mockCacheEntry.value.pageData)
     expect(s3Cache.client.getObject).toHaveBeenCalledTimes(1)
     expect(s3Cache.client.getObject).toHaveBeenCalledWith({
@@ -143,7 +143,7 @@ describe('S3Cache', () => {
       ContentType: 'application/json'
     })
 
-    const result = await s3Cache.get(cacheKey, cacheKey)
+    const result = await s3Cache.get(cacheKey, cacheKey, mockCacheContext)
     expect(result).toEqual(mockCacheEntry.value.pageData)
     expect(s3Cache.client.getObject).toHaveBeenCalledTimes(1)
     expect(s3Cache.client.getObject).toHaveBeenCalledWith({
@@ -152,7 +152,7 @@ describe('S3Cache', () => {
     })
 
     await s3Cache.delete(cacheKey, cacheKey)
-    const updatedResult = await s3Cache.get(cacheKey, cacheKey)
+    const updatedResult = await s3Cache.get(cacheKey, cacheKey, mockCacheContext)
     expect(updatedResult).toBeNull()
     expect(s3Cache.client.deleteObjects).toHaveBeenCalledTimes(1)
     expect(s3Cache.client.deleteObjects).toHaveBeenNthCalledWith(1, {
@@ -171,19 +171,19 @@ describe('S3Cache', () => {
     const mockCacheEntryWithTags = { ...mockCacheEntry, tags: [cacheKey] }
     await s3Cache.set(cacheKey, cacheKey, mockCacheEntryWithTags, mockCacheContext)
 
-    expect(await s3Cache.get(cacheKey, cacheKey)).toEqual(mockCacheEntryWithTags.value.pageData)
+    expect(await s3Cache.get(cacheKey, cacheKey, mockCacheContext)).toEqual(mockCacheEntryWithTags.value.pageData)
 
     await s3Cache.revalidateTag(cacheKey, [])
 
-    expect(await s3Cache.get(cacheKey, cacheKey)).toBeNull()
+    expect(await s3Cache.get(cacheKey, cacheKey, mockCacheContext)).toBeNull()
   })
 
   it('should revalidate cache by path', async () => {
     await s3Cache.set(cacheKey, cacheKey, mockCacheEntry, mockCacheContext)
 
-    expect(await s3Cache.get(cacheKey, cacheKey)).toEqual(mockCacheEntry.value.pageData)
+    expect(await s3Cache.get(cacheKey, cacheKey, mockCacheContext)).toEqual(mockCacheEntry.value.pageData)
 
     await s3Cache.deleteAllByKeyMatch(cacheKey, [])
-    expect(await s3Cache.get(cacheKey, cacheKey)).toBeNull()
+    expect(await s3Cache.get(cacheKey, cacheKey, mockCacheContext)).toBeNull()
   })
 })
