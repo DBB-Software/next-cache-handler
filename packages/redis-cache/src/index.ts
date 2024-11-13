@@ -1,5 +1,5 @@
 import { RedisClientOptions } from 'redis'
-import type { CacheEntry, CacheStrategy } from '@dbbs/next-cache-handler-common'
+import type { CacheEntry, CacheStrategy } from '@dbbs/next-cache-handler-core'
 import { RedisString } from './RedisString'
 import { RedisStack } from './RedisStack'
 import { CHUNK_LIMIT } from './constants'

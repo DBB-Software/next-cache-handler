@@ -1,13 +1,8 @@
 import { NEXT_CACHE_TAGS_HEADER } from 'next/dist/lib/constants'
 import { ListObjectsV2CommandOutput, S3 } from '@aws-sdk/client-s3'
 import { PutObjectCommandInput } from '@aws-sdk/client-s3/dist-types/commands/PutObjectCommand'
-import {
-  getAWSCredentials,
-  type CacheEntry,
-  type CacheStrategy,
-  chunkArray,
-  CacheContext
-} from '@dbbs/next-cache-handler-common'
+import { getAWSCredentials, chunkArray } from '@dbbs/next-cache-handler-common'
+import type { CacheEntry, CacheStrategy, CacheContext } from '@dbbs/next-cache-handler-core'
 
 const TAG_PREFIX = 'revalidateTag'
 const NOT_FOUND_ERROR = ['NotFound', 'NoSuchKey']

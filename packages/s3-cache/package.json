@@ -31,7 +31,8 @@
   },
   "devDependencies": {
     "tsconfig": "*",
-    "@dbbs/next-cache-handler-common": "*"
+    "@dbbs/next-cache-handler-common": "*",
+    "@dbbs/next-cache-handler-core": "*"
   },
   "directories": {
     "lib": "lib"

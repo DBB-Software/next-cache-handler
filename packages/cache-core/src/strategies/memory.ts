@@ -1,4 +1,4 @@
-import type { CacheEntry, CacheStrategy } from '@dbbs/next-cache-handler-common'
+import type { CacheEntry, CacheStrategy } from '../types'
 import { checkHeaderTags } from '@dbbs/next-cache-handler-common'
 
 const mapCache = new Map()

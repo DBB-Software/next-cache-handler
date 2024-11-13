@@ -1,4 +1,4 @@
-import { CacheStrategy } from '@dbbs/next-cache-handler-common'
+import { CacheStrategy } from '@dbbs/next-cache-handler-core'
 
 interface RedisJSONArray extends Array<RedisJSON> {}
 
