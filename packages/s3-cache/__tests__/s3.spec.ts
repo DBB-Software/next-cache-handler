@@ -1,4 +1,4 @@
-import { CacheEntry, CacheContext } from '@dbbs/next-cache-handler-common'
+import { CacheEntry, CacheContext } from '@dbbs/next-cache-handler-core'
 import { S3Cache } from '../src'
 
 const mockHtmlPage = '<p>My Page</p>'

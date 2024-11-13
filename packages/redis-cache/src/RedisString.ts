@@ -1,5 +1,5 @@
 import { createClient, RedisClientType, RedisClientOptions } from 'redis'
-import type { CacheEntry } from '@dbbs/next-cache-handler-common'
+import type { CacheEntry } from '@dbbs/next-cache-handler-core'
 import { checkHeaderTags } from '@dbbs/next-cache-handler-common'
 import { RedisAdapter } from './types'
 import { CHUNK_LIMIT } from './constants'

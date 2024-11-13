@@ -9,7 +9,7 @@ import {
   RedisScripts,
   SchemaFieldTypes
 } from 'redis'
-import type { CacheEntry } from '@dbbs/next-cache-handler-common'
+import type { CacheEntry } from '@dbbs/next-cache-handler-core'
 import { RedisAdapter, RedisJSON } from './types'
 import { CHUNK_LIMIT } from './constants'
 

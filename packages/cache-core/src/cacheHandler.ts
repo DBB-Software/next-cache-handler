@@ -10,7 +10,7 @@ import type {
   CacheHandlerContext,
   CacheEntry,
   IncrementalCacheValue
-} from '@dbbs/next-cache-handler-common'
+} from '../src/types'
 import { ConsoleLogger, type BaseLogger } from './logger'
 import { FileSystemCache } from './strategies/fileSystem'
 

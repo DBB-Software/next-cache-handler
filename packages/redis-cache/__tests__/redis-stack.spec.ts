@@ -1,5 +1,5 @@
 import { mockCacheEntry, mockDeleteKey, mockReadKey, mockScan, mockWriteKey } from './mocks'
-import { CacheEntry } from '@dbbs/next-cache-handler-common'
+import { CacheEntry } from '@dbbs/next-cache-handler-core'
 import { RedisAdapter, RedisCache } from '../src'
 import { RedisStack } from '../lib/RedisStack'
 

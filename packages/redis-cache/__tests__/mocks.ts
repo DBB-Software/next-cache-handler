@@ -1,4 +1,4 @@
-import { CacheEntry } from '@dbbs/next-cache-handler-common'
+import { CacheEntry } from '@dbbs/next-cache-handler-core'
 export const mockCacheEntry: CacheEntry = {
   value: {
     pageData: {},

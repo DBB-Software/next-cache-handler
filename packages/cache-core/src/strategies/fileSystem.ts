@@ -1,7 +1,7 @@
 import fs from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import path from 'node:path'
-import type { CacheStrategy, CacheEntry, CacheContext } from '@dbbs/next-cache-handler-common'
+import type { CacheStrategy, CacheEntry, CacheContext } from '../types'
 import { checkHeaderTags } from '@dbbs/next-cache-handler-common'
 
 export class FileSystemCache implements CacheStrategy {
