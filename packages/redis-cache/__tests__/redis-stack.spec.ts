@@ -91,7 +91,7 @@ describe('RedisCache', () => {
     const result1 = await redisCache.get(cacheKey, cacheKey)
     expect(result1).toEqual(mockedCacheEntry)
 
-    await redisCache.deleteAllByKeyMatch(cacheKey, [])
+    await redisCache.deleteAllByKeyMatch(cacheKey, '')
     expect(redisClient.unlink).toHaveBeenCalledTimes(1)
     expect(redisClient.unlink).toHaveBeenNthCalledWith(1, [`${cacheKey}//${cacheKey}`])
 
@@ -118,7 +118,7 @@ describe('RedisCache', () => {
 
     expect(await redisCache.get(cacheKey, cacheKey)).toEqual(mockedCacheEntry)
 
-    await redisCache.deleteAllByKeyMatch(cacheKey, [])
+    await redisCache.deleteAllByKeyMatch(cacheKey, '')
     expect(redisClient.unlink).toHaveBeenCalledTimes(1)
     expect(redisClient.unlink).toHaveBeenNthCalledWith(1, [`${cacheKey}//${cacheKey}`])
 

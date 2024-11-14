@@ -109,11 +109,6 @@ export class Cache implements CacheHandler {
     }
   }
 
-  getCurrentCacheKey(): string[] {
-    const currentCacheKey = this.nextOptions._requestHeaders[CURRENT_CACHE_KEY_HEADER_NAME] || []
-    return typeof currentCacheKey === 'string' ? currentCacheKey.split(', ') : currentCacheKey
-  }
-
   getCurrentDeviceType() {
     if (!Cache.enableDeviceSplit) return ''
     const headers = this.nextOptions._requestHeaders
@@ -228,13 +223,22 @@ export class Cache implements CacheHandler {
       if (tag.startsWith(NEXT_CACHE_IMPLICIT_TAG_ID)) {
         const path = tag.slice(NEXT_CACHE_IMPLICIT_TAG_ID.length)
         Cache.logger.info(`Revalidate by path ${path}`)
+        try {
+          console.log('Building cache key from path')
+          const urlParams = new URL(path, 'https://fakedomain.com')
+          const query = Object.fromEntries(urlParams.searchParams)
+          this.queryCacheKey = this.buildCacheKey(Cache.cacheQueries.toSorted(), query, 'query')
+        } catch (err) {
+          console.log('Error building cache key from path', err)
+        }
         const pageKey = this.removeSlashFromStart(path)
-        await Cache.cache.deleteAllByKeyMatch(!pageKey.length ? 'index' : pageKey, this.getCurrentCacheKey(), {
+        await Cache.cache.deleteAllByKeyMatch(!pageKey.length ? 'index' : pageKey, this.buildPageCacheKey(), {
           serverCacheDirPath: this.serverCacheDirPath
         })
       } else {
         Cache.logger.info(`Revalidate by tag ${tag}`)
-        await Cache.cache.revalidateTag(tag, this.getCurrentCacheKey(), {
+        // TODO: (ISSUE-1650)
+        await Cache.cache.revalidateTag(tag, [], {
           serverCacheDirPath: this.serverCacheDirPath
         })
       }

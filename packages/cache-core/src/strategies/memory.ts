@@ -63,14 +63,12 @@ export class MemoryCache implements CacheStrategy {
     mapCache.delete(cacheKey)
   }
 
-  async deleteAllByKeyMatch(pageKey: string, allowCacheKeys: string[]) {
+  async deleteAllByKeyMatch(pageKey: string, cacheKey: string) {
     const allKeys: string[] = [...mapCache.keys()]
 
     const relatedKeys = allKeys.filter(
       (key) =>
-        key.startsWith(pageKey) &&
-        key.replace(`${pageKey}/`, '').split('/').length === 1 &&
-        (!allowCacheKeys.length || allowCacheKeys.some((allowKey) => key.endsWith(allowKey)))
+        key.startsWith(pageKey) && key.replace(`${pageKey}/`, '').split('/').length === 1 && key.includes(cacheKey)
     )
 
     relatedKeys.forEach((cacheKey) => {
