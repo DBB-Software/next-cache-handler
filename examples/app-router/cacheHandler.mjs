@@ -1,5 +1,10 @@
 import { Cache, FileSystemCache } from '@dbbs/next-cache-handler-core'
 
-Cache.addCookies(['abtest']).addQueries(['abtest']).setCacheStrategy(new FileSystemCache()).addDeviceSplit()
+Cache.setConfig({
+  enableDeviceSplit: true,
+  cacheCookies: ['abtest'],
+  cacheQueries: ['abtest'],
+  cache: new FileSystemCache()
+})
 
 export default Cache

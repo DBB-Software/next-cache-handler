@@ -63,10 +63,14 @@ describe('CacheHandler', () => {
   })
 
   afterEach(() => {
-    Cache.cacheCookies = []
-    Cache.cacheQueries = []
-    Cache.enableDeviceSplit = false
-    Cache.noCacheMatchers = []
+    Cache.setConfig({
+      cacheCookies: [],
+      cacheQueries: [],
+      enableDeviceSplit: false,
+      noCacheMatchers: [],
+      cache: new FileSystemCache(),
+      logger: mockLogger
+    })
     jest.clearAllMocks()
   })
 
@@ -134,15 +138,13 @@ describe('CacheHandler', () => {
   ])(
     'should handle cache $description',
     async ({ cacheCookie, cacheQuery, cacheStrategy, addDeviceSplit, overrideHeaders, expectedCacheSuffix }) => {
-      if (cacheCookie) {
-        Cache.addCookies([cacheCookie])
-      }
-      if (cacheQuery) {
-        Cache.addQueries([cacheQuery])
-      }
-      Cache.enableDeviceSplit = addDeviceSplit
-      Cache.setCacheStrategy(cacheStrategy)
-      Cache.setLogger(mockLogger)
+      Cache.setConfig({
+        enableDeviceSplit: addDeviceSplit,
+        cacheCookies: cacheCookie ? [cacheCookie] : [],
+        cacheQueries: cacheQuery ? [cacheQuery] : [],
+        cache: cacheStrategy,
+        logger: mockLogger
+      })
 
       const cacheHandler = new Cache({
         ...mockNextHandlerContext,
@@ -172,23 +174,28 @@ describe('CacheHandler', () => {
   )
 
   it('should log when read data from cache', async () => {
-    Cache.setCacheStrategy(new FileSystemCache())
-    Cache.setLogger(mockLogger)
+    Cache.setConfig({
+      logger: mockLogger,
+      cache: new FileSystemCache()
+    })
     const cacheHandler = new Cache(mockNextHandlerContext)
 
-    await cacheHandler.get(mockCacheKey)
+    const result = await cacheHandler.get(mockCacheKey)
 
     expect(mockLogger.info).toHaveBeenCalledTimes(2)
     expect(mockLogger.info).toHaveBeenCalledWith(`Reading cache data for ${mockCacheKey}`)
     expect(mockLogger.info).toHaveBeenCalledWith(`No actual cache found for ${mockCacheKey}`)
+    expect(result).toBeNull()
   })
 
   it('should log when failed to read data from cache', async () => {
     const errorMessage = 'Error reading'
     mockGetData.mockRejectedValueOnce(errorMessage)
 
-    Cache.setCacheStrategy(new FileSystemCache())
-    Cache.setLogger(mockLogger)
+    Cache.setConfig({
+      logger: mockLogger,
+      cache: new FileSystemCache()
+    })
     const cacheHandler = new Cache(mockNextHandlerContext)
 
     await cacheHandler.get(mockCacheKey)
@@ -197,12 +204,14 @@ describe('CacheHandler', () => {
     expect(mockLogger.info).toHaveBeenCalledWith(`Reading cache data for ${mockCacheKey}`)
 
     expect(mockLogger.error).toHaveBeenCalledTimes(1)
-    expect(mockLogger.error).toHaveBeenCalledWith(`Failed read cache for ${mockCacheKey}`, errorMessage)
+    expect(mockLogger.error).toHaveBeenCalledWith(`CacheError: Failed to read cache for ${mockCacheKey}`, errorMessage)
   })
 
   it('should log when set data to cache', async () => {
-    Cache.setCacheStrategy(new FileSystemCache())
-    Cache.setLogger(mockLogger)
+    Cache.setConfig({
+      logger: mockLogger,
+      cache: new FileSystemCache()
+    })
     const cacheHandler = new Cache(mockNextHandlerContext)
 
     await cacheHandler.set(mockCacheKey, mockPageData, mockCacheStrategyContext)
@@ -215,8 +224,10 @@ describe('CacheHandler', () => {
     const errorMessage = 'Error writing'
     mockSetData.mockRejectedValueOnce(errorMessage)
 
-    Cache.setCacheStrategy(new FileSystemCache())
-    Cache.setLogger(mockLogger)
+    Cache.setConfig({
+      logger: mockLogger,
+      cache: new FileSystemCache()
+    })
     const cacheHandler = new Cache(mockNextHandlerContext)
 
     await cacheHandler.set(mockCacheKey, mockPageData, mockCacheStrategyContext)
@@ -229,8 +240,10 @@ describe('CacheHandler', () => {
   })
 
   it('should delete page cache if data was not passed', async () => {
-    Cache.setCacheStrategy(new FileSystemCache())
-    Cache.setLogger(mockLogger)
+    Cache.setConfig({
+      logger: mockLogger,
+      cache: new FileSystemCache()
+    })
     const cacheHandler = new Cache(mockNextHandlerContext)
 
     await cacheHandler.set(mockCacheKey, null, mockCacheStrategyContext)
@@ -247,8 +260,10 @@ describe('CacheHandler', () => {
     const errorMessage = 'error deleting'
     mockDeleteData.mockRejectedValueOnce(errorMessage)
 
-    Cache.setCacheStrategy(new FileSystemCache())
-    Cache.setLogger(mockLogger)
+    Cache.setConfig({
+      logger: mockLogger,
+      cache: new FileSystemCache()
+    })
     const cacheHandler = new Cache(mockNextHandlerContext)
 
     await cacheHandler.set(mockCacheKey, null, mockCacheStrategyContext)
@@ -262,8 +277,11 @@ describe('CacheHandler', () => {
   })
 
   it('should skip reading / writing data if route listed as no cache using value', async () => {
-    Cache.setCacheStrategy(new FileSystemCache())
-    Cache.addNoCacheMatchers(mockCacheKey)
+    Cache.setConfig({
+      noCacheMatchers: [mockCacheKey],
+      cache: new FileSystemCache(),
+      logger: mockLogger
+    })
     const cacheHandler = new Cache(mockNextHandlerContext)
 
     await cacheHandler.set(mockCacheKey, mockPageData, mockHandlerMethodContext)
@@ -273,10 +291,11 @@ describe('CacheHandler', () => {
   })
 
   it('should skip reading / writing data if route listed as no cache using regular expressions)', async () => {
-    Cache.setCacheStrategy(new FileSystemCache())
-    Cache.setLogger(mockLogger)
-
-    Cache.addNoCacheMatchers(RegExpMatcher)
+    Cache.setConfig({
+      noCacheMatchers: [RegExpMatcher],
+      cache: new FileSystemCache(),
+      logger: mockLogger
+    })
     const cacheHandler = new Cache(mockNextHandlerContext)
 
     for (const nonMatchedPath of NonMatchedPaths) {
@@ -295,10 +314,11 @@ describe('CacheHandler', () => {
   })
 
   it('should skip reading / writing data if route listed as no cache using regular expressions and additional value)', async () => {
-    Cache.setCacheStrategy(new FileSystemCache())
-    Cache.setLogger(mockLogger)
-
-    Cache.addNoCacheMatchers([RegExpMatcher, '/home'])
+    Cache.setConfig({
+      noCacheMatchers: [RegExpMatcher, '/home'],
+      cache: new FileSystemCache(),
+      logger: mockLogger
+    })
     const cacheHandler = new Cache(mockNextHandlerContext)
 
     for (const nonMatchedPath of NonMatchedPaths) {
@@ -317,10 +337,11 @@ describe('CacheHandler', () => {
   })
 
   it('should skip reading / writing data if route listed as no cache using regular expressions and additional matcher)', async () => {
-    Cache.setCacheStrategy(new FileSystemCache())
-    Cache.setLogger(mockLogger)
-
-    Cache.addNoCacheMatchers([RegExpMatcher, '/:path'])
+    Cache.setConfig({
+      noCacheMatchers: [RegExpMatcher, '/:path'],
+      cache: new FileSystemCache(),
+      logger: mockLogger
+    })
     const cacheHandler = new Cache(mockNextHandlerContext)
 
     for (const nonMatchedPath of NonMatchedPaths) {
@@ -339,8 +360,10 @@ describe('CacheHandler', () => {
   })
 
   it('should log when revalidate path', async () => {
-    Cache.setCacheStrategy(new FileSystemCache())
-    Cache.setLogger(mockLogger)
+    Cache.setConfig({
+      logger: mockLogger,
+      cache: new FileSystemCache()
+    })
     const cacheHandler = new Cache(mockNextHandlerContext)
 
     await cacheHandler.revalidateTag(`_N_T_${mockCacheKey}`)
@@ -350,8 +373,10 @@ describe('CacheHandler', () => {
   })
 
   it('should log when revalidate tag', async () => {
-    Cache.setCacheStrategy(new FileSystemCache())
-    Cache.setLogger(mockLogger)
+    Cache.setConfig({
+      logger: mockLogger,
+      cache: new FileSystemCache()
+    })
     const cacheHandler = new Cache(mockNextHandlerContext)
 
     await cacheHandler.revalidateTag(mockCacheKey)
@@ -364,8 +389,10 @@ describe('CacheHandler', () => {
     const errorMessage = 'error revalidate'
     mockRevalidateTagData.mockRejectedValueOnce(errorMessage)
 
-    Cache.setCacheStrategy(new FileSystemCache())
-    Cache.setLogger(mockLogger)
+    Cache.setConfig({
+      logger: mockLogger,
+      cache: new FileSystemCache()
+    })
     const cacheHandler = new Cache(mockNextHandlerContext)
 
     await cacheHandler.revalidateTag(mockCacheKey)
@@ -381,8 +408,10 @@ describe('CacheHandler', () => {
     const errorMessage = 'error revalidate'
     mockDeleteAllByKeyMatchData.mockRejectedValueOnce(errorMessage)
 
-    Cache.setCacheStrategy(new FileSystemCache())
-    Cache.setLogger(mockLogger)
+    Cache.setConfig({
+      logger: mockLogger,
+      cache: new FileSystemCache()
+    })
     const cacheHandler = new Cache(mockNextHandlerContext)
 
     await cacheHandler.revalidateTag(`${NEXT_CACHE_IMPLICIT_TAG_ID}${mockCacheKey}`)

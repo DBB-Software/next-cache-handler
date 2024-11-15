@@ -27,12 +27,12 @@ describe('MemoryCache', () => {
     expect(memoryCache.get(cacheKey, cacheKey)).toEqual(mockCacheEntry)
     expect(memoryCache.get(cacheKey2, cacheKey2)).toEqual(mockCacheEntry)
 
-    memoryCache.deleteAllByKeyMatch(cacheKey, [])
+    memoryCache.deleteAllByKeyMatch(cacheKey, '')
 
     expect(memoryCache.get(cacheKey, cacheKey)).toBeFalsy()
     expect(memoryCache.get(cacheKey2, cacheKey2)).toEqual(mockCacheEntry)
 
-    memoryCache.deleteAllByKeyMatch(cacheKey2, [])
+    memoryCache.deleteAllByKeyMatch(cacheKey2, '')
     expect(memoryCache.get(cacheKey2, cacheKey2)).toBeFalsy()
   })
 
@@ -74,11 +74,11 @@ describe('MemoryCache', () => {
     expect(memoryCache.get(cacheKey, cacheKey)).toEqual(mockCacheEntry)
     expect(memoryCache.get(cacheKey2, cacheKey2)).toEqual(mockCacheEntry)
 
-    await memoryCache.deleteAllByKeyMatch(cacheKey, [])
+    await memoryCache.deleteAllByKeyMatch(cacheKey, '')
     expect(memoryCache.get(cacheKey, cacheKey)).toBeFalsy()
     expect(memoryCache.get(cacheKey2, cacheKey2)).toEqual(mockCacheEntry)
 
-    await memoryCache.deleteAllByKeyMatch(cacheKey2, [])
+    await memoryCache.deleteAllByKeyMatch(cacheKey2, '')
     expect(memoryCache.get(cacheKey2, cacheKey2)).toBeFalsy()
   })
 })

@@ -54,18 +54,14 @@ export class FileSystemCache implements CacheStrategy {
     await fs.rm(path.join(ctx.serverCacheDirPath, pageKey, `${cacheKey}.json`))
   }
 
-  async deleteAllByKeyMatch(pageKey: string, allowCacheKeys: string[], ctx: CacheContext) {
+  async deleteAllByKeyMatch(pageKey: string, cacheKey: string, ctx: CacheContext) {
     if (!ctx || !existsSync(ctx.serverCacheDirPath)) return
 
     const pathToCacheFolder = path.join(ctx.serverCacheDirPath, ...pageKey.split('/'))
     if (!existsSync(pathToCacheFolder)) return
 
     const cacheDir = await fs.readdir(pathToCacheFolder, { withFileTypes: true })
-    const filesToDelete = cacheDir.filter(
-      (cacheItem) =>
-        !cacheItem.isDirectory() &&
-        (!allowCacheKeys.length || allowCacheKeys.includes(cacheItem.name.replace('.json', '')))
-    )
+    const filesToDelete = cacheDir.filter((cacheItem) => !cacheItem.isDirectory() && cacheItem.name.includes(cacheKey))
 
     if (cacheDir.length === filesToDelete.length) {
       await fs.rm(pathToCacheFolder, { recursive: true })

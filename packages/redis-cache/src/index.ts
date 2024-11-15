@@ -34,9 +34,9 @@ export class RedisCache implements CacheStrategy {
     await this.redisAdapter.client.unlink(`${pageKey}//${cacheKey}`)
   }
 
-  async deleteAllByKeyMatch(key: string, allowCacheKeys: string[]): Promise<void> {
-    if (allowCacheKeys.length) {
-      await this.redisAdapter.client.unlink(allowCacheKeys.map((allowKey) => `${key}//${allowKey}`))
+  async deleteAllByKeyMatch(key: string, cacheKey: string): Promise<void> {
+    if (cacheKey) {
+      await this.redisAdapter.client.unlink(`${key}//${cacheKey}`)
       return
     }
 
