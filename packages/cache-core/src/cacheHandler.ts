@@ -2,16 +2,17 @@ import path from 'path'
 import cookieParser from 'cookie'
 import parser from 'ua-parser-js'
 import crypto from 'crypto'
-import { pathToRegexp, Path } from 'path-to-regexp'
+import { pathToRegexp } from 'path-to-regexp'
 import { NEXT_CACHE_IMPLICIT_TAG_ID } from 'next/dist/lib/constants'
 import type {
   NextCacheHandlerContext,
-  CacheStrategy,
   CacheHandlerContext,
   CacheEntry,
-  IncrementalCacheValue
+  IncrementalCacheValue,
+  CacheConfig,
+  CacheHandler
 } from '../src/types'
-import { ConsoleLogger, type BaseLogger } from './logger'
+import { ConsoleLogger } from './logger'
 import { FileSystemCache } from './strategies/fileSystem'
 
 export enum HEADER_DEVICE_TYPE {
@@ -21,39 +22,35 @@ export enum HEADER_DEVICE_TYPE {
   Tablet = 'cloudfront-is-tablet-viewer'
 }
 
-export declare class CacheHandler {
-  static logger: BaseLogger
-  static cacheCookies: string[]
-  static cacheQueries: string[]
-  static cache: CacheStrategy
+// Custom error types for better error handling
+export class CacheError extends Error {
+  constructor(
+    message: string,
+    public readonly cause?: unknown
+  ) {
+    super(message)
+    this.name = 'CacheError'
+  }
+}
 
-  nextOptions: NextCacheHandlerContext
-  cookieCacheKey: string
-  queryCacheKey: string
-  device?: string
-  serverCacheDirPath: string
-
-  constructor(context: NextCacheHandlerContext)
-
-  get(pageKey: string, ctx: CacheHandlerContext): Promise<CacheEntry | null>
-  set(pageKey: string, data: IncrementalCacheValue | null, ctx: CacheHandlerContext): Promise<void>
-  revalidateTag(tag: string): Promise<void>
+export class CacheKeyError extends CacheError {
+  constructor(message: string, cause?: unknown) {
+    super(message, cause)
+    this.name = 'CacheKeyError'
+  }
 }
 
 export const CURRENT_CACHE_KEY_HEADER_NAME = 'x-current-cache-key'
 
 export class Cache implements CacheHandler {
-  static cacheCookies: string[] = []
-
-  static cacheQueries: string[] = []
-
-  static enableDeviceSplit = false
-
-  static noCacheMatchers: RegExp[] = []
-
-  static cache: CacheStrategy = new FileSystemCache()
-
-  static logger: BaseLogger = new ConsoleLogger()
+  private static config: CacheConfig = {
+    cacheCookies: [],
+    cacheQueries: [],
+    enableDeviceSplit: false,
+    noCacheMatchers: [],
+    cache: new FileSystemCache(),
+    logger: new ConsoleLogger()
+  }
 
   nextOptions: NextCacheHandlerContext
 
@@ -92,25 +89,34 @@ export class Cache implements CacheHandler {
 
   buildCookiesCacheKey() {
     const parsedCookies = cookieParser.parse((this.nextOptions._requestHeaders.cookie as string) || '')
-    return this.buildCacheKey(Cache.cacheCookies.toSorted(), parsedCookies, 'cookie')
+    return this.buildCacheKey(Cache.config.cacheCookies.toSorted(), parsedCookies, 'cookie')
   }
 
-  buildQueryCacheKey() {
+  buildQueryCacheKey(): string {
     try {
       const currentQueryString = this.nextOptions._requestHeaders?.['x-invoke-query']
-      if (!currentQueryString) return ''
+      if (!currentQueryString) {
+        return ''
+      }
 
-      const parsedQuery = JSON.parse(decodeURIComponent(currentQueryString as string))
+      const parsedQuery = this.parseQueryString(currentQueryString as string)
+      return this.buildCacheKey(Cache.config.cacheQueries.toSorted(), parsedQuery, 'query')
+    } catch (error) {
+      throw new CacheKeyError('Failed to build query cache key', error)
+    }
+  }
 
-      return this.buildCacheKey(Cache.cacheQueries.toSorted(), parsedQuery, 'query')
-    } catch (_e) {
-      console.warn('Could not parse request query.')
-      return ''
+  private parseQueryString(queryString: string): Record<string, string> {
+    try {
+      return JSON.parse(decodeURIComponent(queryString))
+    } catch (error) {
+      Cache.config.logger.error('Could not parse request query.')
+      return {}
     }
   }
 
   getCurrentDeviceType() {
-    if (!Cache.enableDeviceSplit) return ''
+    if (!Cache.config.enableDeviceSplit) return ''
     const headers = this.nextOptions._requestHeaders
 
     if (headers['user-agent'] === 'Amazon CloudFront') {
@@ -123,7 +129,6 @@ export class Cache implements CacheHandler {
       } else if (headers[HEADER_DEVICE_TYPE.SmartTV] === 'true') {
         return 'smarttv'
       }
-      return ''
     }
 
     return parser(headers['user-agent'] as string)?.device?.type ?? ''
@@ -145,7 +150,7 @@ export class Cache implements CacheHandler {
   }
 
   checkIsPathToCache(pageKey: string) {
-    return !Cache.noCacheMatchers.some((matcher) => matcher.exec(pageKey))
+    return !Cache.config.noCacheMatchers.some((matcher) => matcher.exec(pageKey))
   }
 
   removeSlashFromStart(value: string) {
@@ -158,36 +163,44 @@ export class Cache implements CacheHandler {
         return null
       }
 
-      Cache.logger.info(`Reading cache data for ${pageKey}`)
+      Cache.config.logger.info(`Reading cache data for ${pageKey}`)
 
-      const data = await Cache.cache.get(this.removeSlashFromStart(pageKey), this.buildPageCacheKey(), {
+      const data = await Cache.config.cache.get(this.removeSlashFromStart(pageKey), this.buildPageCacheKey(), {
         serverCacheDirPath: this.serverCacheDirPath,
         isAppRouter: this.isAppRouter
       })
 
-      // Send page to revalidate
       if (!data || this.checkIsStaleCache(data)) {
-        Cache.logger.info(`No actual cache found for ${pageKey}`)
+        Cache.config.logger.info(`No actual cache found for ${pageKey}`)
         return null
       }
 
-      if (data.value?.kind === 'ROUTE') {
-        return { ...data, value: { ...data.value, body: Buffer.from(data.value.body as unknown as string, 'base64') } }
-      }
-
-      return data
-    } catch (err) {
-      Cache.logger.error(`Failed read cache for ${pageKey}`, err)
+      return this.transformCacheData(data)
+    } catch (error) {
+      Cache.config.logger.error(new CacheError(`Failed to read cache for ${pageKey}`).toString(), error)
 
       return null
     }
+  }
+
+  private transformCacheData(data: CacheEntry): CacheEntry {
+    if (data.value?.kind === 'ROUTE') {
+      return {
+        ...data,
+        value: {
+          ...data.value,
+          body: Buffer.from(data.value.body as unknown as string, 'base64')
+        }
+      }
+    }
+    return data
   }
 
   async set(pageKey: string, data: IncrementalCacheValue | null, ctx: CacheHandlerContext): Promise<void> {
     try {
       if (!this.checkIsPathToCache(pageKey) || ['IMAGE', 'REDIRECT', 'FETCH'].includes(data?.kind ?? '')) return
 
-      Cache.logger.info(`Writing cache for ${pageKey}`)
+      Cache.config.logger.info(`Writing cache for ${pageKey}`)
       const context = {
         serverCacheDirPath: this.serverCacheDirPath,
         isAppRouter: this.isAppRouter
@@ -195,13 +208,13 @@ export class Cache implements CacheHandler {
 
       if (!data) {
         try {
-          Cache.logger.info(`Deleting cache data for ${pageKey}`)
-          await Cache.cache.delete(this.removeSlashFromStart(pageKey), this.buildPageCacheKey(), context)
+          Cache.config.logger.info(`Deleting cache data for ${pageKey}`)
+          await Cache.config.cache.delete(this.removeSlashFromStart(pageKey), this.buildPageCacheKey(), context)
         } catch (err) {
-          Cache.logger.error(`Failed to delete cache data for ${pageKey}`, err)
+          Cache.config.logger.error(`Failed to delete cache data for ${pageKey}`, err)
         }
       } else {
-        await Cache.cache.set(
+        await Cache.config.cache.set(
           this.removeSlashFromStart(pageKey),
           this.buildPageCacheKey(),
           {
@@ -214,76 +227,56 @@ export class Cache implements CacheHandler {
         )
       }
     } catch (err) {
-      Cache.logger.error(`Failed to write cache for ${pageKey}`, err)
+      Cache.config.logger.error(`Failed to write cache for ${pageKey}`, err)
     }
   }
 
   async revalidateTag(tag: string) {
     try {
       if (tag.startsWith(NEXT_CACHE_IMPLICIT_TAG_ID)) {
-        const path = tag.slice(NEXT_CACHE_IMPLICIT_TAG_ID.length)
-        Cache.logger.info(`Revalidate by path ${path}`)
-        try {
-          console.log('Building cache key from path')
-          const urlParams = new URL(path, 'https://fakedomain.com')
-          const query = Object.fromEntries(urlParams.searchParams)
-          this.queryCacheKey = this.buildCacheKey(Cache.cacheQueries.toSorted(), query, 'query')
-        } catch (err) {
-          console.log('Error building cache key from path', err)
+        const [path, query] = tag.slice(NEXT_CACHE_IMPLICIT_TAG_ID.length).split('?')
+        Cache.config.logger.info(`Revalidate by path ${path}`)
+
+        if (query) {
+          try {
+            this.queryCacheKey = this.buildCacheKey(
+              Cache.config.cacheQueries.toSorted(),
+              Object.fromEntries(new URLSearchParams(query)),
+              'query'
+            )
+          } catch (err) {
+            Cache.config.logger.error('Error building cache key from path', err)
+          }
         }
+
         const pageKey = this.removeSlashFromStart(path)
-        await Cache.cache.deleteAllByKeyMatch(!pageKey.length ? 'index' : pageKey, this.buildPageCacheKey(), {
+
+        await Cache.config.cache.deleteAllByKeyMatch(!pageKey.length ? 'index' : pageKey, this.buildPageCacheKey(), {
           serverCacheDirPath: this.serverCacheDirPath
         })
       } else {
-        Cache.logger.info(`Revalidate by tag ${tag}`)
+        Cache.config.logger.info(`Revalidate by tag ${tag}`)
         // TODO: (ISSUE-1650)
-        await Cache.cache.revalidateTag(tag, [], {
+        await Cache.config.cache.revalidateTag(tag, [], {
           serverCacheDirPath: this.serverCacheDirPath
         })
       }
     } catch (err) {
-      Cache.logger.error(`Failed revalidate by ${tag}`, err)
+      Cache.config.logger.error(`Failed revalidate by ${tag}`, err)
       return
     }
   }
 
-  static addCookies(value: string[]) {
-    Cache.cacheCookies.push(...value)
-
-    return this
-  }
-
-  static addQueries(value: string[]) {
-    Cache.cacheQueries.push(...value)
-
-    return this
-  }
-
-  static addDeviceSplit() {
-    Cache.enableDeviceSplit = true
-
-    return this
-  }
-
-  static setCacheStrategy(cache: CacheStrategy) {
-    Cache.cache = cache
-
-    return this
-  }
-
-  static setLogger(logger: BaseLogger) {
-    Cache.logger = logger
-
-    return this
-  }
-
-  static addNoCacheMatchers(matchers: Path | Path[]) {
-    const regexps = Array.isArray(matchers)
-      ? matchers.map((matcher) => pathToRegexp(matcher))
-      : [pathToRegexp(matchers)]
-    Cache.noCacheMatchers.push(...regexps)
-
+  static setConfig(
+    config: Partial<Omit<CacheConfig, 'noCacheMatchers'> & { noCacheMatchers: (RegExp | string)[] }>
+  ): typeof Cache {
+    Cache.config = {
+      ...Cache.config,
+      ...config,
+      noCacheMatchers: Array.isArray(config.noCacheMatchers)
+        ? config.noCacheMatchers.map((matcher) => pathToRegexp(matcher))
+        : []
+    }
     return this
   }
 }

@@ -1,5 +1,6 @@
 import type { IncrementalCacheKindHint, IncrementalCacheValue } from 'next/dist/server/response-cache'
 import type { CacheHandlerContext as NextCacheHandlerContext } from 'next/dist/server/lib/incremental-cache'
+import type { BaseLogger } from '../logger'
 
 export { NextCacheHandlerContext, IncrementalCacheValue, IncrementalCacheKindHint }
 
@@ -31,4 +32,33 @@ export interface CacheHandlerContext {
   tags?: string[]
   softTags?: string[]
   serverCacheDirPath: string
+}
+
+// Configuration interface
+export interface CacheConfig {
+  cacheCookies: string[]
+  cacheQueries: string[]
+  enableDeviceSplit: boolean
+  noCacheMatchers: RegExp[]
+  cache: CacheStrategy
+  logger: BaseLogger
+}
+
+export declare class CacheHandler {
+  static logger: BaseLogger
+  static cacheCookies: string[]
+  static cacheQueries: string[]
+  static cache: CacheStrategy
+
+  nextOptions: NextCacheHandlerContext
+  cookieCacheKey: string
+  queryCacheKey: string
+  device?: string
+  serverCacheDirPath: string
+
+  constructor(context: NextCacheHandlerContext)
+
+  get(pageKey: string, ctx: CacheHandlerContext): Promise<CacheEntry | null>
+  set(pageKey: string, data: IncrementalCacheValue | null, ctx: CacheHandlerContext): Promise<void>
+  revalidateTag(tag: string): Promise<void>
 }
