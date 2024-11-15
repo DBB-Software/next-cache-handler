@@ -1,4 +1,3 @@
-
 # Next-Cache-Handler
 
 ## Introduction
@@ -35,21 +34,25 @@ yarn add @dbbs/next-cache-handler-core
 
 ### Configuration
 Create a `cacheHandler.js` in your project and configure as follows:
-```javascript
-import { Cache, FileSystemCache } from '@dbbs/next-cache-handler-core'
+```typescript
+import { Cache, FileSystemCache, ConsoleLogger } from '@dbbs/next-cache-handler-core'
 
-Cache
-    .setCacheStrategy(new FileSystemCache())
-    .addCookies(['my-cookie-1','my-cookie-2'])
-    .addQueries(['my-query-1','my-query-2'])
-    .addDeviceSplit()
-    // Additional configuration...
+const config = {
+  cacheCookies: ['my-cookie-1', 'my-cookie-2'],
+  cacheQueries: ['my-query-1', 'my-query-2'],
+  enableDeviceSplit: true,
+  noCacheMatchers: [],
+  cache: new FileSystemCache(),
+  logger: new ConsoleLogger()
+}
+
+Cache.setConfig(config)
 export default Cache    
 ```
 
 Update your `next.config.js` to use the cache handler.
 
-```
+```typescript
 const nextConfig = {
     cacheHandler: require.resolve('./cacheHandler.js')
 }
@@ -60,12 +63,12 @@ export default nextConfig
 ## Cache Strategies
 Explore various caching strategies to find the best fit for your application's needs:
 - **MemoryCache**: Ideal for short-lived data in applications with limited cache size requirements. By default limit of size is set to 512MB.
-```
+```typescript
 import { Cache, MemoryCache } from '@dbbs/next-cache-handler-core'
 
 Cache.setCacheStrategy(new MemoryCache())
 ```
-```
+```typescript
 import { Cache, MemoryCache } from '@dbbs/next-cache-handler-core'
 
 // extending size limitation to 1024MB.
@@ -78,7 +81,7 @@ import { Cache, FileSystemCache } from '@dbbs/next-cache-handler-core'
 Cache.setCacheStrategy(new FileSystemCache())
 ```
 - **Redis**: Perfect for distributed applications requiring shared cache access.
-```
+```typescript
 import { Cache } from '@dbbs/next-cache-handler-core'
 import { RedisCache } from '@dbbs/next-cache-handler-redis'
 
@@ -94,7 +97,7 @@ Cache.setCacheStrategy(new RedisCache(redisConnectionOpts))
 By default, we use plain Redis as the cache store. 
 But you are able to use Redis with RedisJSON and RedisSearch modules as the cache store.
 In that case you need to pass extra params to RedisCache class during initialization.
-```
+```typescript
 import { Cache } from '@dbbs/next-cache-handler-core'
 import { RedisCache, RedisStrategy } from "@dbbs/next-cache-handler-redis"
 
@@ -104,56 +107,54 @@ const redisConnectionOpts = {
     ...
 }
 
-Cache.setCacheStrategy(new RedisCache(redisConnectionOpts, RedisStrategy.RedisStack))))
+Cache.setConfig({
+    ...config,
+    cache: new RedisCache(redisConnectionOpts, RedisStrategy.RedisJSON),
+})
 ```
 - **S3**: Suitable for high scalable applications.
-```
+```typescript
 import { Cache } from '@dbbs/next-cache-handler-core'
 import { S3Cache } from '@dbbs/next-cache-handler-s3'
 
-Cache.setCacheStrategy(new S3Cache('cache-bucket-name'))
+Cache.setConfig({
+    ...config,
+    cache: new S3Cache('cache-bucket-name'),
+})
 ```
 
 ## API Reference
 
-### `addCookies`
-Cookie names what is going to be used to fragmentate cache based on browser cookies session.
-```
-Cache.addCookies(['my-cookie-to-split'])
-```
+### Configuration Options
+The cache handler accepts the following configuration options:
 
-### `addQueries`
-Query names to fragmentate cache based on url query parameters.
-```
-Cache.addQueries(['my-query-to-split'])
-```
+- `cacheCookies`: Array of cookie names to use for cache segmentation
+- `cacheQueries`: Array of query parameter names to use for cache segmentation
+- `enableDeviceSplit`: Boolean to enable/disable device-based cache segmentation
+- `noCacheMatchers`: Array of path patterns to exclude from caching
+- `cache`: Cache strategy instance (FileSystemCache, MemoryCache, etc.)
+- `logger`: Logger instance implementing the BaseLogger interface
 
-### `addDeviceSplit`
-Enables to fragmentate experience based on current `User-Agent` of the request.
-```
-Cache.addDeviceSplit()
-```
+```typescript
+import { Cache, FileSystemCache } from '@dbbs/next-cache-handler-core'
 
-### `setCacheStrategy`
-Applies given strategy to cache page data.
-```
-Cache.setCacheStrategy(new MemoryCache())
-```
+const config = {
+    cacheCookies: ['my-cookie-1', 'my-cookie-2'],
+    cacheQueries: ['my-query-1', 'my-query-2'],
+    enableDeviceSplit: true,
+    noCacheMatchers: [],
+    cache: new FileSystemCache(),
+    logger: new ConsoleLogger()
+}
 
-### `addNoCacheMatchers`
-This allows you to exclude pages for which caching should be disabled. 
-You can match one or more paths using array syntax. The matcher config allows full regex. 
-Add route to ignore cache list. All routes added here would be excluded from caching and will always render again.
+Cache.setConfig(config)
+
+export default Cache
 ```
-Cache.addNoCacheMatchers('/home')
-Cache.addNoCacheMatchers(['/home','/about'])
-Cache.addNoCacheMatchers('/catalog/:page')
-```
-Read more details on [path-to-regexp](https://github.com/pillarjs/path-to-regexp#path-to-regexp-1) documentation.
 
 ## Logging
 Leverage the built-in logger for monitoring cache operations or integrate your custom logger for advanced logging capabilities.
-```
+```typescript
 import { BaseLogger, Cache, FileSystemCache } from '@dbbs/next-cache-handler-core'
 
 class MyCustomLogger implements BaseLogger {
