@@ -7,10 +7,10 @@ on:
       package:
         required: true
         type: choice
+        description: The package to release
         options:
           - next-cache-handler-core
           - next-cache-handler-redis
-          - next-cache-handler-s3
 
 permissions:
   contents: write # to be able to publish a GitHub release
