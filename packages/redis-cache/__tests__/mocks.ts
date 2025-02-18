@@ -1,10 +1,9 @@
-import { CacheEntry } from '@dbbs/next-cache-handler-core'
+import { CacheEntry, CachedRouteKind } from '@dbbs/next-cache-handler-core'
 export const mockCacheEntry: CacheEntry = {
   value: {
     pageData: {},
     html: '',
-    kind: 'PAGE',
-    postponed: undefined,
+    kind: CachedRouteKind.PAGE,
     headers: undefined,
     status: 200
   },

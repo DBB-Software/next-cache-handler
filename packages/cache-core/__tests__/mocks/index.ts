@@ -3,7 +3,8 @@ import {
   NextCacheHandlerContext,
   CacheEntry,
   CacheContext,
-  CacheHandlerContext
+  CacheHandlerContext,
+  CachedRouteKind
 } from '../../src/types'
 
 export const mockNextHandlerContext: NextCacheHandlerContext = {
@@ -26,8 +27,7 @@ export const mockHandlerMethodContext: CacheHandlerContext = {
 export const mockPageData: IncrementalCacheValue = {
   pageData: {},
   html: '',
-  kind: 'PAGE',
-  postponed: undefined,
+  kind: CachedRouteKind.PAGE,
   headers: undefined,
   status: 200
 }
