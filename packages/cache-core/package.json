@@ -50,5 +50,8 @@
     "cookie": "0.6.0",
     "ua-parser-js": "1.0.37",
     "path-to-regexp": "6.2.2"
+  },
+  "peerDependencies": {
+    "next": "^14.1.0 || ^15.0.0"
   }
 }

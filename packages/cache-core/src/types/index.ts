@@ -1,8 +1,81 @@
-import type { IncrementalCacheKindHint, IncrementalCacheValue } from 'next/dist/server/response-cache'
+import type { IncrementalCacheKindHint } from 'next/dist/server/response-cache'
+import type { OutgoingHttpHeaders } from 'http'
 import type { CacheHandlerContext as NextCacheHandlerContext } from 'next/dist/server/lib/incremental-cache'
 import type { BaseLogger } from '../logger'
 
-export { NextCacheHandlerContext, IncrementalCacheValue, IncrementalCacheKindHint }
+export { NextCacheHandlerContext, IncrementalCacheKindHint }
+
+export type AnyObject = Record<string, any>
+
+export const enum CachedRouteKind {
+  APP_PAGE = 'APP_PAGE',
+  APP_ROUTE = 'APP_ROUTE',
+  ROUTE = 'ROUTE',
+  PAGES = 'PAGES',
+  PAGE = 'PAGE',
+  FETCH = 'FETCH',
+  REDIRECT = 'REDIRECT',
+  IMAGE = 'IMAGE'
+}
+
+export type CachedFetchData = {
+  headers: Record<string, string>
+  body: string
+  url: string
+  status?: number
+}
+
+export interface CachedFetchValue {
+  kind: CachedRouteKind.FETCH
+  data: CachedFetchData
+  tags?: string[]
+  revalidate: number
+}
+export interface CachedRedirectValue {
+  kind: CachedRouteKind.REDIRECT
+  props: AnyObject
+}
+
+export interface IncrementalCachedAppPageValue {
+  kind: CachedRouteKind.APP_PAGE
+  html: string
+  rscData: Buffer | undefined
+  headers: OutgoingHttpHeaders | undefined
+  postponed: string | undefined
+  status: number | undefined
+  segmentData: Map<string, Buffer> | undefined
+}
+export interface IncrementalCachedPageValue {
+  kind: CachedRouteKind.PAGES | CachedRouteKind.PAGE
+  html: string
+  pageData: AnyObject
+  headers: OutgoingHttpHeaders | undefined
+  status: number | undefined
+}
+
+export interface CachedRouteValue {
+  kind: CachedRouteKind.APP_ROUTE | CachedRouteKind.ROUTE
+  body: Buffer
+  status: number
+  headers: OutgoingHttpHeaders
+}
+export interface CachedImageValue {
+  kind: CachedRouteKind.IMAGE
+  etag: string
+  upstreamEtag: string
+  buffer: Buffer
+  extension: string
+  isMiss?: boolean
+  isStale?: boolean
+}
+
+export type IncrementalCacheValue =
+  | CachedRedirectValue
+  | IncrementalCachedPageValue
+  | IncrementalCachedAppPageValue
+  | CachedImageValue
+  | CachedFetchValue
+  | CachedRouteValue
 
 export interface CacheEntry {
   value: IncrementalCacheValue | null

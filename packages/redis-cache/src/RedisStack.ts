@@ -9,7 +9,7 @@ import {
   RedisScripts,
   SchemaFieldTypes
 } from 'redis'
-import type { CacheEntry } from '@dbbs/next-cache-handler-core'
+import { CachedRouteKind, type CacheEntry } from '@dbbs/next-cache-handler-core'
 import { RedisAdapter, RedisJSON } from './types'
 import { CHUNK_LIMIT } from './constants'
 
@@ -54,10 +54,18 @@ export class RedisStack implements RedisAdapter {
   }
 
   async set(pageKey: string, cacheKey: string, data: CacheEntry): Promise<void> {
-    const headersTags =
-      data?.value?.kind === 'PAGE' || data?.value?.kind === 'ROUTE'
-        ? data?.value?.headers?.[NEXT_CACHE_TAGS_HEADER]?.toString()
-        : ''
+    const kind = data?.value?.kind
+    let headersTags = ''
+
+    if (
+      kind === CachedRouteKind.PAGE ||
+      kind === CachedRouteKind.PAGES ||
+      kind === CachedRouteKind.ROUTE ||
+      kind === CachedRouteKind.APP_ROUTE
+    ) {
+      headersTags = data?.value?.headers?.[NEXT_CACHE_TAGS_HEADER]?.toString() ?? ''
+    }
+
     const generalTags = [headersTags, data?.tags?.join(SEPARATOR)].filter(Boolean).join(SEPARATOR)
 
     const cacheData = { ...data, currentCacheKey: cacheKey, generalTags }

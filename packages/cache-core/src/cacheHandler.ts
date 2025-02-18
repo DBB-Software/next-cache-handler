@@ -4,13 +4,14 @@ import parser from 'ua-parser-js'
 import crypto from 'crypto'
 import { pathToRegexp } from 'path-to-regexp'
 import { NEXT_CACHE_IMPLICIT_TAG_ID } from 'next/dist/lib/constants'
-import type {
+import {
   NextCacheHandlerContext,
   CacheHandlerContext,
   CacheEntry,
   IncrementalCacheValue,
   CacheConfig,
-  CacheHandler
+  CacheHandler,
+  CachedRouteKind
 } from '../src/types'
 import { ConsoleLogger } from './logger'
 import { FileSystemCache } from './strategies/fileSystem'
@@ -184,7 +185,7 @@ export class Cache implements CacheHandler {
   }
 
   private transformCacheData(data: CacheEntry): CacheEntry {
-    if (data.value?.kind === 'ROUTE') {
+    if (data.value?.kind === CachedRouteKind.ROUTE || data.value?.kind === CachedRouteKind.APP_ROUTE) {
       return {
         ...data,
         value: {
@@ -193,12 +194,21 @@ export class Cache implements CacheHandler {
         }
       }
     }
+    if (data.value?.kind === CachedRouteKind.APP_PAGE) {
+      return {
+        ...data,
+        value: {
+          ...data.value,
+          rscData: Buffer.from(data.value.rscData as unknown as string, 'base64')
+        }
+      }
+    }
     return data
   }
 
   async set(pageKey: string, data: IncrementalCacheValue | null, ctx: CacheHandlerContext): Promise<void> {
     try {
-      if (!this.checkIsPathToCache(pageKey) || ['IMAGE', 'REDIRECT', 'FETCH'].includes(data?.kind ?? '')) return
+      if (!this.checkIsPathToCache(pageKey)) return
 
       Cache.config.logger.info(`Writing cache for ${pageKey}`)
       const context = {
