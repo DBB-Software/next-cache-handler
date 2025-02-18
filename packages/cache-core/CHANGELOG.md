@@ -1,3 +1,12 @@
+## [1.4.0](https://github.com/DBB-Software/next-cache-handler/compare/v1.3.0-next-cache-handler-core...v1.4.0-next-cache-handler-core) (2025-02-18)
+
+### Features
+
+* update transforming data for APP_PAGE ([d594c89](https://github.com/DBB-Software/next-cache-handler/commit/d594c8990810ba30448fc7909baa5caabecb8a07))
+* updated getting tags from headers ([7378cbc](https://github.com/DBB-Software/next-cache-handler/commit/7378cbcaf0df965e8ee0a0b29f170e9f4e589def))
+* updated tests ([0cc9a15](https://github.com/DBB-Software/next-cache-handler/commit/0cc9a15d4f0c24a56be7ccb4737d8bb381f25d51))
+* updated to support nextjs v15 ([fe49a60](https://github.com/DBB-Software/next-cache-handler/commit/fe49a60b0896e40675f737e3cab7cec48c9494cf))
+
 ## [1.3.0](https://github.com/DBB-Software/next-cache-handler/compare/v1.2.0-next-cache-handler-core...v1.3.0-next-cache-handler-core) (2024-11-15)
 
 ### Features
