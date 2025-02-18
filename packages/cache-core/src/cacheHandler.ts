@@ -194,6 +194,15 @@ export class Cache implements CacheHandler {
         }
       }
     }
+    if (data.value?.kind === CachedRouteKind.APP_PAGE) {
+      return {
+        ...data,
+        value: {
+          ...data.value,
+          rscData: Buffer.from(data.value.rscData as unknown as string, 'base64')
+        }
+      }
+    }
     return data
   }
 
