@@ -54,15 +54,18 @@ export class RedisStack implements RedisAdapter {
   }
 
   async set(pageKey: string, cacheKey: string, data: CacheEntry): Promise<void> {
-    const headersTags =
-      data?.value?.kind &&
-      [CachedRouteKind.PAGE, CachedRouteKind.PAGES, CachedRouteKind.ROUTE, CachedRouteKind.APP_ROUTE].includes(
-        data?.value?.kind
-      )
-        ? // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-          //@ts-expect-error
-          data?.value?.headers?.[NEXT_CACHE_TAGS_HEADER]?.toString()
-        : ''
+    const kind = data?.value?.kind
+    let headersTags = ''
+
+    if (
+      kind === CachedRouteKind.PAGE ||
+      kind === CachedRouteKind.PAGES ||
+      kind === CachedRouteKind.ROUTE ||
+      kind === CachedRouteKind.APP_ROUTE
+    ) {
+      headersTags = data?.value?.headers?.[NEXT_CACHE_TAGS_HEADER]?.toString() ?? ''
+    }
+
     const generalTags = [headersTags, data?.tags?.join(SEPARATOR)].filter(Boolean).join(SEPARATOR)
 
     const cacheData = { ...data, currentCacheKey: cacheKey, generalTags }
