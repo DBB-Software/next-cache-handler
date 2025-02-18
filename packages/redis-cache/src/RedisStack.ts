@@ -9,7 +9,7 @@ import {
   RedisScripts,
   SchemaFieldTypes
 } from 'redis'
-import type { CacheEntry } from '@dbbs/next-cache-handler-core'
+import { CachedRouteKind, type CacheEntry } from '@dbbs/next-cache-handler-core'
 import { RedisAdapter, RedisJSON } from './types'
 import { CHUNK_LIMIT } from './constants'
 
@@ -55,8 +55,13 @@ export class RedisStack implements RedisAdapter {
 
   async set(pageKey: string, cacheKey: string, data: CacheEntry): Promise<void> {
     const headersTags =
-      data?.value?.kind === 'PAGE' || data?.value?.kind === 'ROUTE'
-        ? data?.value?.headers?.[NEXT_CACHE_TAGS_HEADER]?.toString()
+      data?.value?.kind &&
+      [CachedRouteKind.PAGE, CachedRouteKind.PAGES, CachedRouteKind.ROUTE, CachedRouteKind.APP_ROUTE].includes(
+        data?.value?.kind
+      )
+        ? // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+          //@ts-expect-error
+          data?.value?.headers?.[NEXT_CACHE_TAGS_HEADER]?.toString()
         : ''
     const generalTags = [headersTags, data?.tags?.join(SEPARATOR)].filter(Boolean).join(SEPARATOR)
 
