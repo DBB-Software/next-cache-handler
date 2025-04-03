@@ -241,39 +241,42 @@ export class Cache implements CacheHandler {
     }
   }
 
-  async revalidateTag(tag: string) {
-    try {
-      if (tag.startsWith(NEXT_CACHE_IMPLICIT_TAG_ID)) {
-        const [path, query] = tag.slice(NEXT_CACHE_IMPLICIT_TAG_ID.length).split('?')
-        Cache.config.logger.info(`Revalidate by path ${path}`)
+  async revalidateTag(tags: string | string[]) {
+    const tagArray = Array.isArray(tags) ? tags : [tags]
 
-        if (query) {
-          try {
-            this.queryCacheKey = this.buildCacheKey(
-              Cache.config.cacheQueries.toSorted(),
-              Object.fromEntries(new URLSearchParams(query)),
-              'query'
-            )
-          } catch (err) {
-            Cache.config.logger.error('Error building cache key from path', err)
+    for (const tag of tagArray) {
+      try {
+        if (tag.startsWith(NEXT_CACHE_IMPLICIT_TAG_ID)) {
+          const [path, query] = tag.slice(NEXT_CACHE_IMPLICIT_TAG_ID.length).split('?')
+          Cache.config.logger.info(`Revalidate by path ${path}`)
+
+          if (query) {
+            try {
+              this.queryCacheKey = this.buildCacheKey(
+                Cache.config.cacheQueries.toSorted(),
+                Object.fromEntries(new URLSearchParams(query)),
+                'query'
+              )
+            } catch (err) {
+              Cache.config.logger.error('Error building cache key from path', err)
+            }
           }
+
+          const pageKey = this.removeSlashFromStart(path)
+
+          await Cache.config.cache.deleteAllByKeyMatch(!pageKey.length ? 'index' : pageKey, this.buildPageCacheKey(), {
+            serverCacheDirPath: this.serverCacheDirPath
+          })
+        } else {
+          Cache.config.logger.info(`Revalidate by tag ${tag}`)
+          // TODO: (ISSUE-1650)
+          await Cache.config.cache.revalidateTag(tag, [], {
+            serverCacheDirPath: this.serverCacheDirPath
+          })
         }
-
-        const pageKey = this.removeSlashFromStart(path)
-
-        await Cache.config.cache.deleteAllByKeyMatch(!pageKey.length ? 'index' : pageKey, this.buildPageCacheKey(), {
-          serverCacheDirPath: this.serverCacheDirPath
-        })
-      } else {
-        Cache.config.logger.info(`Revalidate by tag ${tag}`)
-        // TODO: (ISSUE-1650)
-        await Cache.config.cache.revalidateTag(tag, [], {
-          serverCacheDirPath: this.serverCacheDirPath
-        })
+      } catch (err) {
+        Cache.config.logger.error(`Failed revalidate by ${tag}`, err)
       }
-    } catch (err) {
-      Cache.config.logger.error(`Failed revalidate by ${tag}`, err)
-      return
     }
   }
 

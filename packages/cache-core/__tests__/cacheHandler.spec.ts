@@ -372,6 +372,22 @@ describe('CacheHandler', () => {
     expect(mockLogger.info).toHaveBeenNthCalledWith(1, `Revalidate by path ${mockCacheKey}`)
   })
 
+  it('should revalidate multiple paths when passed as array', async () => {
+    Cache.setConfig({
+      logger: mockLogger,
+      cache: new FileSystemCache()
+    })
+    const cacheHandler = new Cache(mockNextHandlerContext)
+    const paths = [`${NEXT_CACHE_IMPLICIT_TAG_ID}path1`, `${NEXT_CACHE_IMPLICIT_TAG_ID}path2`]
+
+    await cacheHandler.revalidateTag(paths)
+
+    expect(mockLogger.info).toHaveBeenCalledTimes(2)
+    expect(mockLogger.info).toHaveBeenNthCalledWith(1, 'Revalidate by path path1')
+    expect(mockLogger.info).toHaveBeenNthCalledWith(2, 'Revalidate by path path2')
+    expect(mockDeleteAllByKeyMatchData).toHaveBeenCalledTimes(2)
+  })
+
   it('should log when revalidate tag', async () => {
     Cache.setConfig({
       logger: mockLogger,
@@ -383,6 +399,41 @@ describe('CacheHandler', () => {
 
     expect(mockLogger.info).toHaveBeenCalledTimes(1)
     expect(mockLogger.info).toHaveBeenNthCalledWith(1, `Revalidate by tag ${mockCacheKey}`)
+  })
+
+  it('should revalidate multiple tags when passed as array', async () => {
+    Cache.setConfig({
+      logger: mockLogger,
+      cache: new FileSystemCache()
+    })
+    const cacheHandler = new Cache(mockNextHandlerContext)
+    const tags = ['tag1', 'tag2', 'tag3']
+
+    await cacheHandler.revalidateTag(tags)
+
+    expect(mockLogger.info).toHaveBeenCalledTimes(3)
+    expect(mockLogger.info).toHaveBeenNthCalledWith(1, 'Revalidate by tag tag1')
+    expect(mockLogger.info).toHaveBeenNthCalledWith(2, 'Revalidate by tag tag2')
+    expect(mockLogger.info).toHaveBeenNthCalledWith(3, 'Revalidate by tag tag3')
+    expect(mockRevalidateTagData).toHaveBeenCalledTimes(3)
+  })
+
+  it('should handle mixed array of paths and regular tags', async () => {
+    Cache.setConfig({
+      logger: mockLogger,
+      cache: new FileSystemCache()
+    })
+    const cacheHandler = new Cache(mockNextHandlerContext)
+    const tags = [`${NEXT_CACHE_IMPLICIT_TAG_ID}path1`, 'regularTag', `${NEXT_CACHE_IMPLICIT_TAG_ID}path2`]
+
+    await cacheHandler.revalidateTag(tags)
+
+    expect(mockLogger.info).toHaveBeenCalledTimes(3)
+    expect(mockLogger.info).toHaveBeenNthCalledWith(1, 'Revalidate by path path1')
+    expect(mockLogger.info).toHaveBeenNthCalledWith(2, 'Revalidate by tag regularTag')
+    expect(mockLogger.info).toHaveBeenNthCalledWith(3, 'Revalidate by path path2')
+    expect(mockDeleteAllByKeyMatchData).toHaveBeenCalledTimes(2)
+    expect(mockRevalidateTagData).toHaveBeenCalledTimes(1)
   })
 
   it('should log when failed to revalidate tag', async () => {
@@ -402,6 +453,31 @@ describe('CacheHandler', () => {
 
     expect(mockLogger.error).toHaveBeenCalledTimes(1)
     expect(mockLogger.error).toHaveBeenCalledWith(`Failed revalidate by ${mockCacheKey}`, errorMessage)
+  })
+
+  it('should continue processing tags in array if one fails', async () => {
+    const errorMessage = 'error revalidate'
+    mockRevalidateTagData.mockRejectedValueOnce(errorMessage)
+
+    Cache.setConfig({
+      logger: mockLogger,
+      cache: new FileSystemCache()
+    })
+    const cacheHandler = new Cache(mockNextHandlerContext)
+    const tags = ['tag1', 'tag2', 'tag3']
+
+    await cacheHandler.revalidateTag(tags)
+
+    expect(mockLogger.info).toHaveBeenCalledTimes(3)
+    expect(mockLogger.info).toHaveBeenNthCalledWith(1, 'Revalidate by tag tag1')
+    expect(mockLogger.info).toHaveBeenNthCalledWith(2, 'Revalidate by tag tag2')
+    expect(mockLogger.info).toHaveBeenNthCalledWith(3, 'Revalidate by tag tag3')
+
+    expect(mockLogger.error).toHaveBeenCalledTimes(1)
+    expect(mockLogger.error).toHaveBeenCalledWith('Failed revalidate by tag1', errorMessage)
+
+    // Should continue with other tags despite the error
+    expect(mockRevalidateTagData).toHaveBeenCalledTimes(3)
   })
 
   it('should log when failed to revalidate path', async () => {
