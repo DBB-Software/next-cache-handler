@@ -1,3 +1,9 @@
+## [1.4.1](https://github.com/DBB-Software/next-cache-handler/compare/v1.4.0-next-cache-handler-core...v1.4.1-next-cache-handler-core) (2025-04-09)
+
+### Bug Fixes
+
+* allow revalidateTags to also be called with an array of tags ([59aaf09](https://github.com/DBB-Software/next-cache-handler/commit/59aaf09e3119f0f91957fee24bbcb22a63b95f27))
+
 ## [1.4.0](https://github.com/DBB-Software/next-cache-handler/compare/v1.3.0-next-cache-handler-core...v1.4.0-next-cache-handler-core) (2025-02-18)
 
 ### Features
